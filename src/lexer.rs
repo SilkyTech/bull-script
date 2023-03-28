@@ -42,11 +42,11 @@ pub enum Token<'a> {
     OperatorLogicalOr(),
     OperatorLogicalNot(),
     OperatorGreater(),
-    OperatorLesser()
+    OperatorLesser(),
 }
 
 pub struct TWL<'a> {
-    token: Token<'a>,
+    pub token: Token<'a>,
     charn: i32,
     linen: i32,
     filen: String,
@@ -99,16 +99,16 @@ const KEYWORDS: [Keyword; 9] = [
     },
     Keyword {
         str: "end",
-        token: Token::EndKeyword()
+        token: Token::EndKeyword(),
     },
     Keyword {
         str: "then",
-        token: Token::ThenKeyword()
+        token: Token::ThenKeyword(),
     },
     Keyword {
         str: "proc",
-        token: Token::ProcKeyword()
-    }
+        token: Token::ProcKeyword(),
+    },
 ];
 
 const SEPERATORS: [Keyword; 12] = [
@@ -152,7 +152,6 @@ const SEPERATORS: [Keyword; 12] = [
         str: "=",
         token: Token::OperatorSet(),
     },
-    
     Keyword {
         str: ";",
         token: Token::Semicolon(),
@@ -160,7 +159,7 @@ const SEPERATORS: [Keyword; 12] = [
     Keyword {
         str: ":",
         token: Token::ThenKeyword(),
-    }
+    },
 ];
 
 const BUILTIN_TYPES: [Keyword; 3] = [
@@ -302,7 +301,12 @@ impl Lexer {
                     'v' => (0x0b as char).to_string(),
                     '\'' => '\''.to_string(),
                     '"' => '"'.to_string(),
-                    _ => error_at(&filen, &linen, &charn, &"Invalid escape character".to_string())
+                    _ => error_at(
+                        &filen,
+                        &linen,
+                        &charn,
+                        &format!("Invalid escape character, \\{char}"),
+                    ),
                 });
                 in_escape = false;
             } else if in_string && char == '\\' {
@@ -346,6 +350,10 @@ impl Lexer {
 
             charn += 1;
         }
+        if in_string {
+            error_at(&filen, &linen, &charn, &format!("String not ended"))
+        }
+
         add_token(&mut buffer, &mut tokens, linen, charn);
 
         tokens
@@ -382,15 +390,12 @@ fn is_valid_number(str: &String, loc: &Loc) -> (bool, String, f64) {
                 Ok(value) => {
                     return (true, "float".to_owned(), value);
                 }
-                Err(_) => {
-                    error_at(
-                        &loc.filen,
-                        &loc.linen,
-                        &loc.charn,
-                        &format!("Failed to parse float value: {}", &str),
-                    );
-                    return (false, "float".to_owned(), -1.0);
-                }
+                Err(_) => error_at(
+                    &loc.filen,
+                    &loc.linen,
+                    &loc.charn,
+                    &format!("Failed to parse float value: {}", &str),
+                ),
             }
         } else if is_string_numeric(str) {
             let float = str.parse::<f64>();

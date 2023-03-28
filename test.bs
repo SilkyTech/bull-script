@@ -1,5 +1,5 @@
 import std
 
 proc main () then
-    std.printf("Hello, world!\c")
+    std.printf("Hello, world!\n")
 end

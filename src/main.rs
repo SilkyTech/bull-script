@@ -1,6 +1,8 @@
 use lexer::Lexer;
+use parser::Parser;
 pub mod error;
 pub mod lexer;
+pub mod parser;
 use std::fs;
 
 fn main() {
@@ -13,5 +15,7 @@ fn main() {
         filename: String::from("test.bs"),
     };
 
-    dbg!(lexer.lex());
+    let tokens = lexer.lex();
+    let mut parser = Parser { tokens };
+    parser.parse_expression();
 }
