@@ -3,22 +3,25 @@ use crate::{
     lexer::{Token, TWL},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LiteralType {
     String,
     Number,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperator {
     Negative,
     LogicalNot,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOperator {
     Add,
+    Subtract,
+    Multiply,
+    Divide,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Literal(LiteralType, String),
     Program(Vec<Expr>),
