@@ -47,9 +47,9 @@ pub enum Token<'a> {
 
 pub struct TWL<'a> {
     pub token: Token<'a>,
-    charn: i32,
-    linen: i32,
-    filen: String,
+    pub charn: i32,
+    pub linen: i32,
+    pub filen: String,
 }
 
 struct Loc {
