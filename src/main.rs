@@ -1,13 +1,14 @@
 use lexer::Lexer;
-use parser::Parser;
+use parser::{Expr, Parser};
 pub mod error;
 pub mod lexer;
 pub mod parser;
-use std::fs;
+use std::{env, fs};
 
 fn main() {
+    let argv: Vec<String> = env::args().collect();
     let contents_raw = "";
-    let contents = fs::read_to_string("test.bs")
+    let contents = fs::read_to_string(argv[1].clone())
         .expect("Should have been able to read the file")
         .replace("\r", &contents_raw);
     let lexer = Lexer {
@@ -17,5 +18,8 @@ fn main() {
 
     let tokens = lexer.lex();
     let mut parser = Parser { tokens };
-    parser.parse_expression();
+    let program = parser.parse_program();
+    if let Expr::Program(p) = program {
+        dbg!(p);
+    }
 }
