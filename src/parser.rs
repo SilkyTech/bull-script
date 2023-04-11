@@ -37,6 +37,8 @@ pub enum Expr {
     BinaryOperator(BinaryOperator, Box<Expr>, Box<Expr>),
     Identifier(Vec<String>),
     Call(Vec<String>, Vec<Expr>),
+    // Import(Relative import?, path)
+    Import(bool, String),
 }
 pub enum Node {
     ProcCall(/*Arguments*/ Vec<Expr>),
@@ -103,6 +105,21 @@ impl Parser<'_> {
         }
     }
     pub fn parse_expression(&mut self) -> Expr {
+        let peek = peek_token!(self);
+        if let Token::ImportKeyword() = peek.token {
+            let peek = eat_token!(self);
+            let path = eat_token!(self);
+            match path.token.clone() {
+                Token::StringLiteral(str) => return Expr::Import(true, str),
+                Token::Identifier(vec) => return Expr::Import(false, vec.join(".")),
+                _ => error_at(
+                    &peek.filen,
+                    &peek.linen,
+                    &peek.charn,
+                    &"Expected string literal or identifier after import statement".to_string(),
+                ),
+            }
+        }
         return self.equality();
     }
     pub fn parse_program(&mut self) -> Expr {

@@ -92,4 +92,12 @@ mod parser {
             )]
         )
     }
+
+    #[test]
+    fn import() {
+        test_file!(
+            "../tests/import.bs",
+            vec![Expr::Import(false, "std".to_string())]
+        )
+    }
 }
