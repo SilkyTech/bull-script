@@ -8,7 +8,7 @@ pub struct Lexer {
     pub filename: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token<'a> {
     ImportKeyword(),
     OnKeyword(),
@@ -38,6 +38,7 @@ pub enum Token<'a> {
     OperatorMod(),
     OperatorSet(),
     OperatorEquals(),
+    OperatorNotEquals(),
     OperatorLogicalAnd(),
     OperatorLogicalOr(),
     OperatorLogicalNot(),
@@ -45,6 +46,7 @@ pub enum Token<'a> {
     OperatorLesser(),
 }
 
+#[derive(Clone)]
 pub struct TWL<'a> {
     pub token: Token<'a>,
     pub charn: i32,
@@ -72,7 +74,7 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 9] = [
+const KEYWORDS: [Keyword; 10] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
@@ -84,6 +86,10 @@ const KEYWORDS: [Keyword; 9] = [
     Keyword {
         str: "is",
         token: Token::OperatorEquals(),
+    },
+    Keyword {
+        str: "isnt",
+        token: Token::OperatorNotEquals(),
     },
     Keyword {
         str: "or",

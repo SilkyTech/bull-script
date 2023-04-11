@@ -19,6 +19,9 @@ pub enum BinaryOperator {
     Subtract,
     Multiply,
     Divide,
+    Mod,
+    Equal,
+    NotEqual,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -33,6 +36,7 @@ pub enum Node {
     ProcCall(/*Arguments*/ Vec<Expr>),
 }
 
+#[derive(Clone)]
 pub struct Parser<'a> {
     pub tokens: Vec<TWL<'a>>,
 }
@@ -48,11 +52,10 @@ macro_rules! peek_token {
     };
 }
 
-macro_rules! return_check {
-    ($self: ident, $ret: expr) => {{
-        let ret = $ret;
-        return $self.check_binary(ret);
-    }};
+macro_rules! peekpeek_token {
+    ($self: ident) => {
+        &$self.tokens.iter().nth(1)
+    };
 }
 
 /*
@@ -70,39 +73,41 @@ operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
  */
 
 impl Parser<'_> {
-    pub fn check_binary(&mut self, ret: Expr) -> Expr {
-        if self.tokens.len() < 1 {
-            return ret;
-        }
-        let p = peek_token!(self);
-
-        match &p.token {
+    pub fn check_binary(&mut self, op: TWL) -> bool {
+        match op.token {
             Token::OperatorAdd()
             | Token::OperatorSubtract()
-            | Token::OperatorDivide()
             | Token::OperatorMultiply()
-            | Token::OperatorEquals()
+            | Token::OperatorDivide()
             | Token::OperatorMod()
-            | Token::OperatorGreater()
-            | Token::OperatorLesser()
+            | Token::OperatorSet()
+            | Token::OperatorEquals()
+            | Token::OperatorNotEquals()
             | Token::OperatorLogicalAnd()
+            | Token::OperatorLogicalOr()
             | Token::OperatorLogicalNot()
-            | Token::OperatorLogicalOr() => {
-                let _ = eat_token!(self);
-                let expr = self.parse_expression();
-                // TODO: ONLY DOES ADD, FIX THIS L8R WITH SOME JANKY FIXES IDK
-                return Expr::BinaryOperator(BinaryOperator::Add, Box::new(ret), Box::new(expr));
+            | Token::OperatorGreater()
+            | Token::OperatorLesser() => {
+                let mut p = self.clone();
+                let expr = p.parse_expression();
+                match expr {
+                    Expr::Group(..) | Expr::Literal(..) => return true,
+                    _ => return false,
+                }
             }
-            _ => return ret,
+            _ => {
+                return false;
+            }
         }
     }
     pub fn parse_expression(&mut self) -> Expr {
         let p = eat_token!(self);
+
         if let Token::StringLiteral(str) = &p.token {
-            return_check!(self, Expr::Literal(LiteralType::String, str.to_string()));
+            return Expr::Literal(LiteralType::String, str.to_string());
         }
         if let Token::NumericLiteral(num, _) = &p.token {
-            return_check!(self, Expr::Literal(LiteralType::Number, num.to_string()));
+            return Expr::Literal(LiteralType::Number, num.to_string());
         }
         if let Token::Identifier(parts) = &p.token {
             if let Token::OpenParen() = peek_token!(self).token {
@@ -111,20 +116,29 @@ impl Parser<'_> {
         }
         if let Token::OpenParen() = &p.token {
             let expr = self.parse_expression();
-            return_check!(self, Expr::Group(Box::new(expr)));
+            return Expr::Group(Box::new(expr));
         }
 
         // operators
 
+        // binary
+        if self.check_binary(p.clone()) {
+            match &p.token {
+                Token::OperatorEquals() | Token::OperatorNotEquals() => {
+                    // Equality
+                }
+                _ => {}
+            }
+        }
         // unary
         match &p.token {
             Token::OperatorSubtract() => {
                 let expr = self.parse_expression();
-                return_check!(self, Expr::Unary(UnaryOperator::Negative, Box::new(expr)));
+                return Expr::Unary(UnaryOperator::Negative, Box::new(expr));
             }
             Token::OperatorLogicalNot() => {
                 let expr = self.parse_expression();
-                return_check!(self, Expr::Unary(UnaryOperator::LogicalNot, Box::new(expr)));
+                return Expr::Unary(UnaryOperator::LogicalNot, Box::new(expr));
             }
             _ => {}
         }
@@ -142,5 +156,20 @@ impl Parser<'_> {
             l.push(self.parse_expression());
         }
         return Expr::Program(l);
+    }
+    // MATH
+    pub fn equality(&mut self) -> Expr {
+        /*
+        private Expr equality() {
+            Expr expr = comparison();
+
+            while (match(BANG_EQUAL, EQUAL_EQUAL)) {
+            Token operator = previous();
+            Expr right = comparison();
+            expr = new Expr.Binary(expr, operator, right);
+            }
+
+            return expr;
+        } */
     }
 }
