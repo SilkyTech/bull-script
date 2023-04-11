@@ -25,6 +25,7 @@ pub enum Token<'a> {
     BuiltinType(&'a str),
 
     Child(),
+    Comma(),
     OpenParen(),
     CloseParen(),
     OpenSquare(),
@@ -44,6 +45,10 @@ pub enum Token<'a> {
     OperatorLogicalNot(),
     OperatorGreater(),
     OperatorLesser(),
+    OperatorGreaterEqual(),
+    OperatorLesserEqual(),
+
+    EOF(),
 }
 
 #[derive(Clone)]
@@ -117,7 +122,7 @@ const KEYWORDS: [Keyword; 10] = [
     },
 ];
 
-const SEPERATORS: [Keyword; 12] = [
+const SEPERATORS: [Keyword; 17] = [
     Keyword {
         str: "(",
         token: Token::OpenParen(),
@@ -165,6 +170,26 @@ const SEPERATORS: [Keyword; 12] = [
     Keyword {
         str: ":",
         token: Token::ThenKeyword(),
+    },
+    Keyword {
+        str: "<",
+        token: Token::OperatorLesser(),
+    },
+    Keyword {
+        str: ">",
+        token: Token::OperatorGreater(),
+    },
+    Keyword {
+        str: "<=",
+        token: Token::OperatorLesserEqual(),
+    },
+    Keyword {
+        str: ">=",
+        token: Token::OperatorGreaterEqual(),
+    },
+    Keyword {
+        str: ",",
+        token: Token::Comma(),
     },
 ];
 
@@ -289,13 +314,14 @@ impl Lexer {
             }
         };
 
-        for char in self.text.chars() {
-            if char == '\n' {
+        for mut i in 0..self.text.len() {
+            let ch = self.text.chars().nth(i).unwrap();
+            if ch == '\n' {
                 linen += 1;
                 charn = 1;
             }
             if in_string && in_escape {
-                buffer += &(match &char {
+                buffer += &(match &ch {
                     '\\' => '\\'.to_string(),
                     'a' => (0x07 as char).to_string(),
                     'b' => (0x08 as char).to_string(),
@@ -311,13 +337,13 @@ impl Lexer {
                         &filen,
                         &linen,
                         &charn,
-                        &format!("Invalid escape character, \\{char}"),
+                        &format!("Invalid escape character, \\{ch}"),
                     ),
                 });
                 in_escape = false;
-            } else if in_string && char == '\\' {
+            } else if in_string && ch == '\\' {
                 in_escape = true;
-            } else if char == '"' {
+            } else if ch == '"' {
                 in_string = !in_string;
                 if !in_string {
                     tokens.push(TWL {
@@ -329,14 +355,36 @@ impl Lexer {
                     buffer = String::from("");
                 }
             } else if in_string {
-                buffer += &char.to_string();
-            } else if char == ' ' || char == '\n' {
+                buffer += &ch.to_string();
+            } else if ch == ' ' || ch == '\n' {
                 add_token(&mut buffer, &mut tokens, linen, charn);
                 buffer = String::from("");
             } else {
                 let mut found = false;
                 for sep in SEPERATORS {
-                    if char.to_string() == sep.str {
+                    if sep.str.len() == 2 {
+                        let after = &self.text.chars().nth(i + 1);
+                        match after {
+                            Some(v) => {
+                                let ch = ch.to_string() + &v.to_string();
+                                if ch == sep.str {
+                                    i += 1;
+                                    charn += 1;
+                                    add_token(&mut buffer, &mut tokens, linen, charn);
+                                    buffer = String::from("");
+                                    found = true;
+                                    tokens.push(TWL {
+                                        token: sep.token,
+                                        charn,
+                                        linen,
+                                        filen: filen.clone(),
+                                    });
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    } else if ch.to_string() == sep.str {
                         add_token(&mut buffer, &mut tokens, linen, charn);
                         buffer = String::from("");
                         found = true;
@@ -350,7 +398,7 @@ impl Lexer {
                     }
                 }
                 if !found {
-                    buffer += &char.to_string();
+                    buffer += &ch.to_string();
                 }
             }
 
@@ -362,7 +410,13 @@ impl Lexer {
 
         add_token(&mut buffer, &mut tokens, linen, charn);
 
-        tokens
+        tokens.push(TWL {
+            charn,
+            linen,
+            filen,
+            token: Token::EOF(),
+        });
+        return tokens;
     }
 }
 

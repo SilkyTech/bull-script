@@ -22,6 +22,10 @@ pub enum BinaryOperator {
     Mod,
     Equal,
     NotEqual,
+    Lesser,
+    Greater,
+    LesserEqual,
+    GreaterEqual,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,6 +35,8 @@ pub enum Expr {
     Group(Box<Expr>),
     Unary(UnaryOperator, Box<Expr>),
     BinaryOperator(BinaryOperator, Box<Expr>, Box<Expr>),
+    Identifier(Vec<String>),
+    Call(Vec<String>, Vec<Expr>),
 }
 pub enum Node {
     ProcCall(/*Arguments*/ Vec<Expr>),
@@ -47,15 +53,11 @@ macro_rules! eat_token {
     };
 }
 macro_rules! peek_token {
-    ($self: ident) => {
-        &$self.tokens[0]
-    };
-}
+    ($self: ident) => {{
+        let tok = &$self.tokens[0];
 
-macro_rules! peekpeek_token {
-    ($self: ident) => {
-        &$self.tokens.iter().nth(1)
-    };
+        tok
+    }};
 }
 
 /*
@@ -101,6 +103,159 @@ impl Parser<'_> {
         }
     }
     pub fn parse_expression(&mut self) -> Expr {
+        return self.equality();
+    }
+    pub fn parse_program(&mut self) -> Expr {
+        let mut l: Vec<Expr> = vec![];
+        while self.tokens.len() > 1 {
+            let expr = self.parse_expression();
+            dbg!(expr.clone());
+            l.push(expr);
+        }
+        return Expr::Program(l);
+    }
+    // MATH
+    fn equality(&mut self) -> Expr {
+        let mut expr = self.comparison();
+        loop {
+            match peek_token!(self).token {
+                Token::OperatorEquals() => {
+                    let tmp = eat_token!(self);
+                    let right = self.comparison();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Equal,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorNotEquals() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.comparison();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::NotEqual,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                _ => break,
+            }
+        }
+        return expr;
+    }
+    fn comparison(&mut self) -> Expr {
+        let mut expr = self.term();
+        loop {
+            match peek_token!(self).token {
+                Token::OperatorGreater() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.term();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Greater,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorLesser() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.term();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Lesser,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorLesserEqual() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.term();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Lesser,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorGreaterEqual() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.term();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Lesser,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                _ => break,
+            }
+        }
+        return expr;
+    }
+    fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+        loop {
+            match peek_token!(self).token {
+                Token::OperatorSubtract() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.factor();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Subtract,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorAdd() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.factor();
+                    expr =
+                        Expr::BinaryOperator(BinaryOperator::Add, Box::new(expr), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        return expr;
+    }
+    fn factor(&mut self) -> Expr {
+        let mut expr = self.unary();
+        loop {
+            match peek_token!(self).token {
+                Token::OperatorMultiply() => {
+                    let temp = eat_token!(self).token.clone();
+                    dbg!(self.tokens.clone());
+                    let right = self.unary();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Multiply,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                Token::OperatorDivide() => {
+                    _ = eat_token!(self).token.clone();
+                    let right = self.unary();
+                    expr = Expr::BinaryOperator(
+                        BinaryOperator::Divide,
+                        Box::new(expr),
+                        Box::new(right),
+                    );
+                }
+                _ => break,
+            }
+        }
+        return expr;
+    }
+    fn unary(&mut self) -> Expr {
+        match peek_token!(self).token {
+            Token::OperatorSubtract() => {
+                _ = eat_token!(self).token.clone();
+                let right = self.primary();
+                return Expr::Unary(UnaryOperator::Negative, Box::new(right));
+            }
+            Token::OperatorLogicalNot() => {
+                _ = eat_token!(self).token.clone();
+                let right = self.primary();
+                return Expr::Unary(UnaryOperator::LogicalNot, Box::new(right));
+            }
+            _ => {}
+        }
+        return self.primary();
+    }
+    fn primary(&mut self) -> Expr {
         let p = eat_token!(self);
 
         if let Token::StringLiteral(str) = &p.token {
@@ -111,36 +266,53 @@ impl Parser<'_> {
         }
         if let Token::Identifier(parts) = &p.token {
             if let Token::OpenParen() = peek_token!(self).token {
-                self.parse_expression();
+                eat_token!(self);
+                let mut arguments: Vec<Expr> = vec![];
+                loop {
+                    if let Token::CloseParen() = peek_token!(self).token {
+                        eat_token!(self);
+                        break;
+                    }
+                    let expr = self.parse_expression();
+                    arguments.push(expr);
+                    if let Token::Comma() = peek_token!(self).token {
+                        eat_token!(self);
+                        continue;
+                    }
+                }
+                return Expr::Call(parts.clone(), arguments);
+            } else {
+                return Expr::Identifier(parts.to_vec());
             }
         }
         if let Token::OpenParen() = &p.token {
             let expr = self.parse_expression();
-            return Expr::Group(Box::new(expr));
+            if let Token::EOF() = peek_token!(self).token {
+                error_at(
+                    &p.filen,
+                    &p.linen,
+                    &p.charn,
+                    &format!("Prematurely reached EOF, did you end your grouping?"),
+                )
+            }
+            let close = eat_token!(self).token.clone();
+            if let Token::CloseParen() = close {
+                return Expr::Group(Box::new(expr));
+            }
+            error_at(
+                &p.filen,
+                &p.linen,
+                &p.charn,
+                &format!("Expected ')' after expression, instead got: {:?}", close),
+            )
         }
-
-        // operators
-
-        // binary
-        if self.check_binary(p.clone()) {
-            match &p.token {
-                Token::OperatorEquals() | Token::OperatorNotEquals() => {
-                    // Equality
-                }
-                _ => {}
-            }
-        }
-        // unary
-        match &p.token {
-            Token::OperatorSubtract() => {
-                let expr = self.parse_expression();
-                return Expr::Unary(UnaryOperator::Negative, Box::new(expr));
-            }
-            Token::OperatorLogicalNot() => {
-                let expr = self.parse_expression();
-                return Expr::Unary(UnaryOperator::LogicalNot, Box::new(expr));
-            }
-            _ => {}
+        if let Token::EOF() = &p.token {
+            error_at(
+                &p.filen,
+                &p.linen,
+                &p.charn,
+                &format!("Prematurely reached EOF"),
+            )
         }
 
         error_at(
@@ -149,27 +321,5 @@ impl Parser<'_> {
             &p.charn,
             &format!("Token not implemented or invalid token: {:?}", p),
         )
-    }
-    pub fn parse_program(&mut self) -> Expr {
-        let mut l: Vec<Expr> = vec![];
-        while self.tokens.len() > 0 {
-            l.push(self.parse_expression());
-        }
-        return Expr::Program(l);
-    }
-    // MATH
-    pub fn equality(&mut self) -> Expr {
-        /*
-        private Expr equality() {
-            Expr expr = comparison();
-
-            while (match(BANG_EQUAL, EQUAL_EQUAL)) {
-            Token operator = previous();
-            Expr right = comparison();
-            expr = new Expr.Binary(expr, operator, right);
-            }
-
-            return expr;
-        } */
     }
 }
