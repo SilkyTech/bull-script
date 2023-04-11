@@ -15,6 +15,12 @@ pub enum Token<'a> {
     EndKeyword(),
     ThenKeyword(),
     ProcKeyword(),
+    LetKeyword(),
+
+    IfKeyword(),
+    ForKeyword(),
+    WhileKeyword(),
+    ToKeyword(),
 
     Identifier(Vec<String>),
     Unknown(String),
@@ -79,7 +85,7 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 10] = [
+const KEYWORDS: [Keyword; 15] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
@@ -119,6 +125,26 @@ const KEYWORDS: [Keyword; 10] = [
     Keyword {
         str: "proc",
         token: Token::ProcKeyword(),
+    },
+    Keyword {
+        str: "if",
+        token: Token::IfKeyword(),
+    },
+    Keyword {
+        str: "for",
+        token: Token::ForKeyword(),
+    },
+    Keyword {
+        str: "while",
+        token: Token::WhileKeyword(),
+    },
+    Keyword {
+        str: "to",
+        token: Token::ToKeyword(),
+    },
+    Keyword {
+        str: "let",
+        token: Token::LetKeyword(),
     },
 ];
 

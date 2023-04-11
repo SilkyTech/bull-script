@@ -39,6 +39,10 @@ pub enum Expr {
     Call(Vec<String>, Vec<Expr>),
     // Import(Relative import?, path)
     Import(bool, String),
+    Proc(Vec<String>, Vec<String>, Vec<Expr>),
+    If(Box<Expr>, Vec<Expr>),
+    For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
+    VariableDeclaration(Vec<String>, Box<Expr>),
 }
 pub enum Node {
     ProcCall(/*Arguments*/ Vec<Expr>),
@@ -106,7 +110,7 @@ impl Parser<'_> {
     }
     pub fn parse_expression(&mut self) -> Expr {
         let peek = peek_token!(self);
-        if let Token::ImportKeyword() = peek.token {
+        if let Token::ImportKeyword() = &peek.token.clone() {
             let peek = eat_token!(self);
             let path = eat_token!(self);
             match path.token.clone() {
@@ -116,10 +120,230 @@ impl Parser<'_> {
                     &peek.filen,
                     &peek.linen,
                     &peek.charn,
-                    &"Expected string literal or identifier after import statement".to_string(),
+                    &format!("Expected string literal or identifier after import statement, instead found {:?}", path.token),
                 ),
             }
         }
+
+        if let Token::LetKeyword() = &peek.token.clone() {
+            _ = eat_token!(self);
+            let varname = {
+                let then = eat_token!(self);
+                if let Token::Identifier(ve) = then.token.clone() {
+                    ve
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected Identifier, got {:?}", then.token),
+                    )
+                }
+            };
+            _ = {
+                let then = eat_token!(self);
+                if let Token::OperatorSet() = then.token.clone() {
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"=\", got {:?}", then.token),
+                    )
+                }
+            };
+            let expr = self.parse_expression().clone();
+            return Expr::VariableDeclaration(varname, Box::new(expr));
+        }
+
+        if let Token::IfKeyword() = &peek.token.clone() {
+            eat_token!(self);
+
+            let expr = self.parse_expression();
+
+            // get body of program
+            {
+                let then = eat_token!(self);
+                if !matches!(then.token, Token::ThenKeyword(..)) {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"then\" keyword, got {:?}", then.token),
+                    )
+                };
+            }
+            let mut key = peek_token!(self);
+            let mut program: Vec<Expr> = vec![];
+            loop {
+                if let Token::EndKeyword() = key.token {
+                    eat_token!(self);
+                    break;
+                }
+                if let Token::EOF() = key.token {
+                    error_at(
+                        &key.filen,
+                        &key.linen,
+                        &key.charn,
+                        &format!("Prematurely reached EOF, did you end your proc?"),
+                    )
+                }
+                program.push(self.parse_expression());
+                key = peek_token!(self);
+            }
+            return Expr::If(Box::new(expr), program);
+        }
+        if let Token::ForKeyword() = &peek.token.clone() {
+            eat_token!(self);
+
+            let varname = {
+                let then = eat_token!(self);
+                if let Token::Identifier(ve) = then.token.clone() {
+                    ve
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected Identifier, got {:?}", then.token),
+                    )
+                }
+            };
+
+            _ = {
+                let then = eat_token!(self);
+                if let Token::OperatorSet() = then.token.clone() {
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"=\", got {:?}", then.token),
+                    )
+                }
+            };
+
+            let startval = {
+                let then = eat_token!(self);
+                if let Token::NumericLiteral(f, s) = then.token.clone() {
+                    Expr::Literal(LiteralType::Number, f.to_string())
+                } else if let Token::Identifier(ve) = then.token.clone() {
+                    Expr::Identifier(ve)
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!(
+                            "Expected Identifier or numeric literal, got {:?}",
+                            then.token
+                        ),
+                    )
+                }
+            };
+
+            _ = {
+                let then = eat_token!(self);
+                if let Token::ToKeyword() = then.token.clone() {
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"to\", got {:?}", then.token),
+                    )
+                }
+            };
+            let endval = {
+                let then = eat_token!(self);
+                if let Token::NumericLiteral(f, s) = then.token.clone() {
+                    Expr::Literal(LiteralType::Number, f.to_string())
+                } else if let Token::Identifier(ve) = then.token.clone() {
+                    Expr::Identifier(ve)
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!(
+                            "Expected Identifier or numeric literal, got {:?}",
+                            then.token
+                        ),
+                    )
+                }
+            };
+
+            // get body of program
+            {
+                let then = eat_token!(self);
+                if !matches!(then.token, Token::ThenKeyword(..)) {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"then\" keyword, got {:?}", then.token),
+                    )
+                };
+            }
+            let mut key = peek_token!(self);
+            let mut program: Vec<Expr> = vec![];
+            loop {
+                if let Token::EndKeyword() = key.token {
+                    eat_token!(self);
+                    break;
+                }
+                if let Token::EOF() = key.token {
+                    error_at(
+                        &key.filen,
+                        &key.linen,
+                        &key.charn,
+                        &format!("Prematurely reached EOF, did you end your proc?"),
+                    )
+                }
+                program.push(self.parse_expression());
+                key = peek_token!(self);
+            }
+            return Expr::For(varname, Box::new(startval), Box::new(endval), program);
+        }
+        /*if let Token::IfKeyword() = &peek.token {
+            eat_token!(self);
+
+            let expr = self.parse_expression();
+
+            // get body of program
+            {
+                let then = eat_token!(self);
+                if !matches!(then.token, Token::ThenKeyword(..)) {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"then\" keyword, got {:?}", then.token),
+                    )
+                };
+            }
+            let mut key = peek_token!(self);
+            let mut program: Vec<Expr> = vec![];
+            loop {
+                if let Token::EndKeyword() = key.token {
+                    eat_token!(self);
+                    break;
+                }
+                if let Token::EOF() = key.token {
+                    error_at(
+                        &key.filen,
+                        &key.linen,
+                        &key.charn,
+                        &format!("Prematurely reached EOF, did you end your proc?"),
+                    )
+                }
+                program.push(self.parse_expression());
+                key = peek_token!(self);
+            }
+            return Expr::If(Box::new(expr), program);
+        }
+        */
+        // TODO: ^ add while loop
         return self.equality();
     }
     pub fn parse_program(&mut self) -> Expr {
@@ -280,6 +504,83 @@ impl Parser<'_> {
         }
         if let Token::NumericLiteral(num, _) = &p.token {
             return Expr::Literal(LiteralType::Number, num.to_string());
+        }
+        if let Token::ProcKeyword() = &p.token {
+            let name = eat_token!(self);
+            if let Token::Identifier(n) = name.token.clone() {
+                let open = eat_token!(self);
+                let mut args: Vec<String> = vec![];
+                let do_loop = true;
+                let mut depth = 0;
+                while do_loop {
+                    depth += 1;
+                    if depth > 1000 {
+                        panic!("Reached maximum argument find depth of 1000! You have way too many arguments!");
+                    }
+                    let peek = peek_token!(self);
+                    dbg!(peek);
+                    if let Token::CloseParen() = peek.token {
+                        _ = eat_token!(self);
+                        break;
+                    }
+                    let d = eat_token!(self);
+                    if let Token::Identifier(ve) = d.token.clone() {
+                        args.push(ve[0].clone());
+                    } else {
+                        error_at(
+                            &d.filen,
+                            &d.linen,
+                            &d.charn,
+                            &format!("Expected Identifier, got {:?}", d.token),
+                        );
+                    };
+
+                    let peek = peek_token!(self);
+                    if let Token::Comma() = peek.token {
+                        _ = eat_token!(self);
+                        continue;
+                    }
+                }
+
+                // get body of program
+                {
+                    let then = eat_token!(self);
+                    if !matches!(then.token, Token::ThenKeyword(..)) {
+                        error_at(
+                            &then.filen,
+                            &then.linen,
+                            &then.charn,
+                            &format!("Expected \"then\" keyword, got {:?}", then.token),
+                        )
+                    };
+                }
+                let mut key = peek_token!(self);
+                let mut program: Vec<Expr> = vec![];
+                loop {
+                    if let Token::EndKeyword() = key.token {
+                        eat_token!(self);
+                        break;
+                    }
+                    if let Token::EOF() = key.token {
+                        error_at(
+                            &p.filen,
+                            &p.linen,
+                            &p.charn,
+                            &format!("Prematurely reached EOF, did you end your proc?"),
+                        )
+                    }
+                    program.push(self.parse_expression());
+                    key = peek_token!(self);
+                }
+                return Expr::Proc(n, args, program);
+            } else {
+                error_at(
+                    &name.filen,
+                    &name.linen,
+                    &name.charn,
+                    &format!("Expected Identifier, got {:?}", name.token),
+                )
+            }
         }
         if let Token::Identifier(parts) = &p.token {
             if let Token::OpenParen() = peek_token!(self).token {
