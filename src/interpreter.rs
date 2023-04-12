@@ -146,6 +146,15 @@ fn resolve_variable(y: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralT
     }
 }
 
+macro_rules! insert_variables_from_run_proc {
+    ($vars: ident, $insert: ident) => {{
+        for (k, v) in $insert.clone() {
+            let val = $vars.get(&k).unwrap();
+            $insert.insert(k, val.clone());
+        }
+    }};
+}
+
 pub struct Interpreter {}
 impl Interpreter {
     pub fn run_code(
@@ -223,12 +232,14 @@ impl Interpreter {
                     match variables.get(&name) {
                         Some(v) => {
                             if let Expr::Proc(_name, arg, prog) = v {
-                                self.run_proc(
+                                let vars = self.run_proc(
                                     args.clone(),
                                     v.clone(),
                                     variables.clone(),
                                     namespace.clone(),
                                 );
+
+                                insert_variables_from_run_proc!(vars, variables);
                             } else {
                                 panic!("{} is not a proc", name.join("."))
                             }
@@ -283,12 +294,12 @@ impl Interpreter {
         func: Expr,
         mut scope: HashMap<Vec<String>, Expr>,
         namespace: Vec<String>,
-    ) {
+    ) -> HashMap<Vec<String>, Expr> {
         if let Expr::Proc(_name, pargs, prog) = func {
             for (i, arg) in pargs.iter().enumerate() {
                 scope.insert(vec![arg.to_string()], args[i].clone());
             }
-            self.run_code(prog, scope, namespace.clone());
+            return self.run_code(prog, scope, namespace.clone());
         } else {
             panic!("`run_proc` method didn't receive proc expression")
         }
@@ -306,7 +317,7 @@ impl Interpreter {
                 let main = ret
                     .get(&vec!["main".to_string()])
                     .expect("Expected main function");
-                self.run_proc(vec![], main.clone(), ret.clone(), namespace.clone())
+                let res = self.run_proc(vec![], main.clone(), ret.clone(), namespace.clone());
             }
             return ret;
         } else {
