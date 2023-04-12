@@ -148,7 +148,7 @@ fn resolve_variable(y: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralT
 
 macro_rules! insert_variables_from_run_proc {
     ($vars: ident, $insert: ident) => {{
-        for (k, v) in $insert.clone() {
+        for (k, _) in $insert.clone() {
             let val = $vars.get(&k).unwrap();
             $insert.insert(k, val.clone());
         }
@@ -259,7 +259,9 @@ impl Interpreter {
             } else if let Expr::VariableSet(name, expr) = expr.clone() {
                 // setting a variable
                 if variables.contains_key(&name) {
-                    variables.insert(name, unbox(expr));
+                    let newval = resolve_variable(unbox(expr), variables.clone());
+                    let newval = Expr::Literal(newval.0, newval.1);
+                    variables.insert(name, newval);
                 } else {
                     panic!("Variable named \"{}\" isn't defined", name.join("."));
                 }
@@ -276,7 +278,9 @@ impl Interpreter {
                                 name.clone(),
                                 Expr::Literal(LiteralType::Number, i.to_string()),
                             );
-                            self.run_code(prog.clone(), new_vars.clone(), namespace.clone());
+                            let res =
+                                self.run_code(prog.clone(), new_vars.clone(), namespace.clone());
+                            insert_variables_from_run_proc!(res, variables);
                         }
                     }
                 }
