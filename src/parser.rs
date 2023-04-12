@@ -125,7 +125,7 @@ impl Parser<'_> {
             }
         }
 
-        if let Token::LetKeyword() = &peek.token.clone() {
+        if let Token::Let() = &peek.token.clone() {
             _ = eat_token!(self);
             let varname = {
                 let then = eat_token!(self);
@@ -156,7 +156,7 @@ impl Parser<'_> {
             return Expr::VariableDeclaration(varname, Box::new(expr));
         }
 
-        if let Token::IfKeyword() = &peek.token.clone() {
+        if let Token::If() = &peek.token.clone() {
             eat_token!(self);
 
             let expr = self.parse_expression();
@@ -164,7 +164,7 @@ impl Parser<'_> {
             // get body of program
             {
                 let then = eat_token!(self);
-                if !matches!(then.token, Token::ThenKeyword(..)) {
+                if !matches!(then.token, Token::Then(..)) {
                     error_at(
                         &then.filen,
                         &then.linen,
@@ -176,7 +176,7 @@ impl Parser<'_> {
             let mut key = peek_token!(self);
             let mut program: Vec<Expr> = vec![];
             loop {
-                if let Token::EndKeyword() = key.token {
+                if let Token::End() = key.token {
                     eat_token!(self);
                     break;
                 }
@@ -193,7 +193,7 @@ impl Parser<'_> {
             }
             return Expr::If(Box::new(expr), program);
         }
-        if let Token::ForKeyword() = &peek.token.clone() {
+        if let Token::For() = &peek.token.clone() {
             eat_token!(self);
 
             let varname = {
@@ -244,7 +244,7 @@ impl Parser<'_> {
 
             _ = {
                 let then = eat_token!(self);
-                if let Token::ToKeyword() = then.token.clone() {
+                if let Token::To() = then.token.clone() {
                 } else {
                     error_at(
                         &then.filen,
@@ -276,7 +276,7 @@ impl Parser<'_> {
             // get body of program
             {
                 let then = eat_token!(self);
-                if !matches!(then.token, Token::ThenKeyword(..)) {
+                if !matches!(then.token, Token::Then(..)) {
                     error_at(
                         &then.filen,
                         &then.linen,
@@ -288,7 +288,7 @@ impl Parser<'_> {
             let mut key = peek_token!(self);
             let mut program: Vec<Expr> = vec![];
             loop {
-                if let Token::EndKeyword() = key.token {
+                if let Token::End() = key.token {
                     eat_token!(self);
                     break;
                 }
@@ -503,7 +503,7 @@ impl Parser<'_> {
         if let Token::NumericLiteral(num, _) = &p.token {
             return Expr::Literal(LiteralType::Number, num.to_string());
         }
-        if let Token::ProcKeyword() = &p.token {
+        if let Token::Proc() = &p.token {
             let name = eat_token!(self);
             if let Token::Identifier(n) = name.token.clone() {
                 let _open = eat_token!(self);
@@ -542,7 +542,7 @@ impl Parser<'_> {
                 // get body of program
                 {
                     let then = eat_token!(self);
-                    if !matches!(then.token, Token::ThenKeyword(..)) {
+                    if !matches!(then.token, Token::Then(..)) {
                         error_at(
                             &then.filen,
                             &then.linen,
@@ -554,7 +554,7 @@ impl Parser<'_> {
                 let mut key = peek_token!(self);
                 let mut program: Vec<Expr> = vec![];
                 loop {
-                    if let Token::EndKeyword() = key.token {
+                    if let Token::End() = key.token {
                         eat_token!(self);
                         break;
                     }

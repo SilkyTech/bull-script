@@ -11,16 +11,17 @@ pub struct Lexer {
 #[derive(Debug, Clone)]
 pub enum Token<'a> {
     ImportKeyword(),
-    OnKeyword(),
-    EndKeyword(),
-    ThenKeyword(),
-    ProcKeyword(),
-    LetKeyword(),
+    On(),
+    End(),
+    Then(),
+    Proc(),
+    Let(),
+    Namespace(),
 
-    IfKeyword(),
-    ForKeyword(),
-    WhileKeyword(),
-    ToKeyword(),
+    If(),
+    For(),
+    While(),
+    To(),
 
     Identifier(Vec<String>),
     Unknown(String),
@@ -85,14 +86,14 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 15] = [
+const KEYWORDS: [Keyword; 16] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
     },
     Keyword {
         str: "on",
-        token: Token::OnKeyword(),
+        token: Token::On(),
     },
     Keyword {
         str: "is",
@@ -116,35 +117,39 @@ const KEYWORDS: [Keyword; 15] = [
     },
     Keyword {
         str: "end",
-        token: Token::EndKeyword(),
+        token: Token::End(),
     },
     Keyword {
         str: "then",
-        token: Token::ThenKeyword(),
+        token: Token::Then(),
     },
     Keyword {
         str: "proc",
-        token: Token::ProcKeyword(),
+        token: Token::Proc(),
     },
     Keyword {
         str: "if",
-        token: Token::IfKeyword(),
+        token: Token::If(),
     },
     Keyword {
         str: "for",
-        token: Token::ForKeyword(),
+        token: Token::For(),
     },
     Keyword {
         str: "while",
-        token: Token::WhileKeyword(),
+        token: Token::While(),
     },
     Keyword {
         str: "to",
-        token: Token::ToKeyword(),
+        token: Token::To(),
     },
     Keyword {
         str: "let",
-        token: Token::LetKeyword(),
+        token: Token::Let(),
+    },
+    Keyword {
+        str: "namespace",
+        token: Token::Namespace(),
     },
 ];
 
@@ -195,7 +200,7 @@ const SEPERATORS: [Keyword; 17] = [
     },
     Keyword {
         str: ":",
-        token: Token::ThenKeyword(),
+        token: Token::Then(),
     },
     Keyword {
         str: "<",

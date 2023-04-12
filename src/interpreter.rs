@@ -1,11 +1,17 @@
 use std::collections::HashMap;
 
-use crate::{parser::{Expr, Parser}, lexer::Lexer};
+use crate::{
+    lexer::Lexer,
+    parser::{Expr, Parser},
+};
 
-pub struct Interpreter {
-}
+pub struct Interpreter {}
 impl Interpreter {
-    pub fn run_code(&mut self, code: Vec<Expr>, mut variables: HashMap<String, Expr>) -> HashMap<String, Expr> {
+    pub fn run_code(
+        &mut self,
+        code: Vec<Expr>,
+        mut variables: HashMap<String, Expr>,
+    ) -> HashMap<String, Expr> {
         for expr in code {
             if let Expr::Import(rel, path) = expr.clone() {
                 if rel {
@@ -13,8 +19,10 @@ impl Interpreter {
                 } else {
                     let raw = match path.as_str() {
                         "std" => include_str!("lib/std.bs"),
-                        _ => panic!("TODO: add better error reporting | invalid std import")
-                    }.to_string().replace("\r", &"");
+                        _ => panic!("TODO: add better error reporting | invalid std import"),
+                    }
+                    .to_string()
+                    .replace("\r", &"");
                     let lexer = Lexer {
                         text: raw,
                         filename: String::from("std/".to_string() + &path + &".bs".to_string()),
@@ -32,8 +40,7 @@ impl Interpreter {
                     }
                     dbg!(variables.clone());
                 }
-            }
-            else if let Expr::Proc(name, args, prog) = expr.clone() {
+            } else if let Expr::Proc(name, args, prog) = expr.clone() {
                 let joinname = name.join(".");
                 if variables.contains_key(&joinname) {
                     panic!("TODO: add better error reporting | variable already defined")
@@ -63,8 +70,10 @@ impl Interpreter {
         if let Expr::Program(p) = code {
             let ret = self.run_code(p, HashMap::new());
             if main {
-                let main = ret.get(&"main".to_string()).expect("Expected main function");
-                
+                let main = ret
+                    .get(&"main".to_string())
+                    .expect("Expected main function");
+                self.run_proc(vec![], main.clone(), ret.clone())
             }
             return ret;
         } else {
@@ -73,6 +82,6 @@ impl Interpreter {
     }
 
     pub fn new() -> Self {
-        Interpreter {  }
+        Interpreter {}
     }
 }
