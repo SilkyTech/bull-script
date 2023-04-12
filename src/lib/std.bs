@@ -1,5 +1,5 @@
 namespace std then
-    proc printstrl (string) then
+    proc printval (string) then
         builtin.printval(string)
     end
     proc print (msg) then
