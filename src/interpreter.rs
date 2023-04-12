@@ -2,11 +2,148 @@ use std::collections::HashMap;
 
 use crate::{
     lexer::Lexer,
-    parser::{Expr, LiteralType, Parser},
+    parser::{BinaryOperator, Expr, LiteralType, Parser, UnaryOperator},
 };
 
 fn unbox<T>(value: Box<T>) -> T {
     *value
+}
+fn resolve_math(val: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralType, String) {
+    fn to_num(v: (LiteralType, String)) -> i32 {
+        if let LiteralType::Number = v.0 {
+            return v.1.parse::<i32>().unwrap();
+        } else if let LiteralType::Boolean = v.0 {
+            return v.1.parse::<i32>().unwrap();
+        } else {
+            panic!("")
+        }
+    }
+    if let Expr::Binary(op, left, right) = val {
+        match op {
+            BinaryOperator::Add => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        + to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Subtract => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        - to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Multiply => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        * to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Divide => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        / to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Mod => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        % to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Lesser => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        < to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::LesserEqual => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        <= to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Greater => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        > to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::GreaterEqual => {
+                return (
+                    LiteralType::Number,
+                    (to_num(resolve_variable(unbox(left), variables.clone()))
+                        >= to_num(resolve_variable(unbox(right), variables.clone())))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::Equal => {
+                return (
+                    LiteralType::Boolean,
+                    (resolve_variable(unbox(left), variables.clone())
+                        == resolve_variable(unbox(right), variables.clone()))
+                    .to_string(),
+                )
+            }
+            BinaryOperator::NotEqual => {
+                return (
+                    LiteralType::Boolean,
+                    (resolve_variable(unbox(left), variables.clone())
+                        != resolve_variable(unbox(right), variables.clone()))
+                    .to_string(),
+                )
+            }
+        }
+    } else if let Expr::Unary(op, right) = val {
+        match op {
+            UnaryOperator::Negative => {
+                return (
+                    LiteralType::Number,
+                    (-to_num(resolve_variable(unbox(right), variables.clone()))).to_string(),
+                )
+            }
+            UnaryOperator::LogicalNot => {
+                return (
+                    LiteralType::Boolean,
+                    (!to_num(resolve_variable(unbox(right), variables.clone()))).to_string(),
+                )
+            }
+        }
+    } else {
+        return resolve_variable(val.clone(), variables.clone());
+    }
+}
+
+fn resolve_variable(y: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralType, String) {
+    match y {
+        Expr::Literal(_ty, v) => return (_ty, v),
+        Expr::Unary(..) | Expr::Binary(..) => return resolve_math(y, variables.clone()),
+        Expr::Identifier(name) => {
+            let var = variables.get(&name.clone());
+            match var {
+                None => panic!("Variable \"{}\" doesn't exist", name.join(".")),
+                Some(v) => resolve_variable(v.clone(), variables.clone()),
+            }
+        }
+        _ => {
+            panic!("Invalid argument")
+        }
+    }
 }
 
 pub struct Interpreter {}
@@ -76,28 +213,8 @@ impl Interpreter {
                             "printval" => {
                                 assert_eq!(args.len(), 1, "Argument length required to be one: usage `builtin.printstr($val)`");
 
-                                fn func(y: Expr, variables: HashMap<Vec<String>, Expr>) {
-                                    match y {
-                                        Expr::Literal(_ty, v) => {
-                                            print!("{}", v);
-                                        }
-                                        Expr::Identifier(name) => {
-                                            let var = variables.get(&name.clone());
-                                            match var {
-                                                None => panic!(
-                                                    "Variable \"{}\" doesn't exist",
-                                                    name.join(".")
-                                                ),
-                                                Some(v) => func(v.clone(), variables.clone()),
-                                            }
-                                        }
-                                        _ => {
-                                            panic!("Invalid argument")
-                                        }
-                                    }
-                                }
-
-                                func(args[0].clone(), variables.clone());
+                                let res = resolve_variable(args[0].clone(), variables.clone());
+                                print!("{}", res.1);
                             }
                             _ => panic!("No subcommand called '{}' in builtin functions", v),
                         },
@@ -134,6 +251,23 @@ impl Interpreter {
                     variables.insert(name, unbox(expr));
                 } else {
                     panic!("Variable named \"{}\" isn't defined", name.join("."));
+                }
+            } else if let Expr::For(name, start, end, prog) = expr.clone() {
+                let start = resolve_variable(unbox(start), variables.clone());
+                let end = resolve_variable(unbox(end), variables.clone());
+                if let LiteralType::Number = start.0 {
+                    if let LiteralType::Number = end.0 {
+                        let start = start.1.parse::<i32>().unwrap();
+                        let end = end.1.parse::<i32>().unwrap();
+                        for i in start..end {
+                            let mut new_vars = variables.clone();
+                            new_vars.insert(
+                                name.clone(),
+                                Expr::Literal(LiteralType::Number, i.to_string()),
+                            );
+                            self.run_code(prog.clone(), new_vars.clone(), namespace.clone());
+                        }
+                    }
                 }
             } else {
                 println!("Unknown instruction: {:?}", expr);

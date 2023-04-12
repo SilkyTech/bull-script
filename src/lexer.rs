@@ -30,6 +30,7 @@ pub enum Token<'a> {
     RelativePath(String),
     StringLiteral(String),
     NumericLiteral(f64, String),
+    BooleanLiteral(bool),
     BuiltinType(&'a str),
 
     Child(),
@@ -87,7 +88,7 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 17] = [
+const KEYWORDS: [Keyword; 19] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
@@ -155,6 +156,14 @@ const KEYWORDS: [Keyword; 17] = [
     Keyword {
         str: "namespace",
         token: Token::Namespace(),
+    },
+    Keyword {
+        str: "true",
+        token: Token::BooleanLiteral(true),
+    },
+    Keyword {
+        str: "false",
+        token: Token::BooleanLiteral(false),
     },
 ];
 

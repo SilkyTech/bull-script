@@ -7,6 +7,7 @@ use crate::{
 pub enum LiteralType {
     String,
     Number,
+    Boolean,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperator {
@@ -34,7 +35,7 @@ pub enum Expr {
     Program(Vec<Expr>),
     Group(Box<Expr>),
     Unary(UnaryOperator, Box<Expr>),
-    BinaryOperator(BinaryOperator, Box<Expr>, Box<Expr>),
+    Binary(BinaryOperator, Box<Expr>, Box<Expr>),
     Identifier(Vec<String>),
     Call(Vec<String>, Vec<Expr>),
     // Import(Relative import?, path)
@@ -435,20 +436,12 @@ impl Parser<'_> {
                 Token::OperatorEquals() => {
                     let _tmp = eat_token!(self);
                     let right = self.comparison();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Equal,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Equal, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorNotEquals() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.comparison();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::NotEqual,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::NotEqual, Box::new(expr), Box::new(right));
                 }
                 _ => break,
             }
@@ -462,38 +455,22 @@ impl Parser<'_> {
                 Token::OperatorGreater() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Greater,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Greater, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorLesser() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Lesser,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorLesserEqual() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Lesser,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorGreaterEqual() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Lesser,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
                 }
                 _ => break,
             }
@@ -507,17 +484,12 @@ impl Parser<'_> {
                 Token::OperatorSubtract() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.factor();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Subtract,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Subtract, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorAdd() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.factor();
-                    expr =
-                        Expr::BinaryOperator(BinaryOperator::Add, Box::new(expr), Box::new(right));
+                    expr = Expr::Binary(BinaryOperator::Add, Box::new(expr), Box::new(right));
                 }
                 _ => break,
             }
@@ -531,20 +503,12 @@ impl Parser<'_> {
                 Token::OperatorMultiply() => {
                     let _temp = eat_token!(self).token.clone();
                     let right = self.unary();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Multiply,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Multiply, Box::new(expr), Box::new(right));
                 }
                 Token::OperatorDivide() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.unary();
-                    expr = Expr::BinaryOperator(
-                        BinaryOperator::Divide,
-                        Box::new(expr),
-                        Box::new(right),
-                    );
+                    expr = Expr::Binary(BinaryOperator::Divide, Box::new(expr), Box::new(right));
                 }
                 _ => break,
             }
@@ -575,6 +539,13 @@ impl Parser<'_> {
         }
         if let Token::NumericLiteral(num, _) = &p.token {
             return Expr::Literal(LiteralType::Number, num.to_string());
+        }
+        if let Token::BooleanLiteral(b) = &p.token {
+            return if b.clone() {
+                Expr::Literal(LiteralType::Boolean, "1".to_string())
+            } else {
+                Expr::Literal(LiteralType::Boolean, "0".to_string())
+            };
         }
         if let Token::Proc() = &p.token {
             let name = eat_token!(self);
