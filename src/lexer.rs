@@ -241,6 +241,7 @@ const BUILTIN_TYPES: [Keyword; 3] = [
 
 impl Lexer {
     pub fn lex(&self) -> Vec<TWL> {
+        let mut in_comment = false;
         let mut in_string = false;
         let mut in_escape = false;
         let mut buffer = String::from("");
@@ -350,6 +351,16 @@ impl Lexer {
             if ch == '\n' {
                 linen += 1;
                 charn = 1;
+                in_comment = false;
+            }
+            if in_comment && !in_string {
+                charn += 1;
+                continue;
+            }
+            if ch == '#' && !in_string {
+                in_comment = true;
+                charn += 1;
+                continue;
             }
             if in_string && in_escape {
                 buffer += &(match &ch {
