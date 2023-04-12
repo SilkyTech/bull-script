@@ -43,6 +43,7 @@ pub enum Expr {
     If(Box<Expr>, Vec<Expr>),
     For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
     VariableDeclaration(Vec<String>, Box<Expr>),
+    Namespace(Vec<String>, Vec<Expr>),
 }
 pub enum Node {
     ProcCall(/*Arguments*/ Vec<Expr>),
@@ -123,6 +124,46 @@ impl Parser<'_> {
                     &format!("Expected string literal or identifier after import statement, instead found {:?}", path.token),
                 ),
             }
+        }
+
+        if let Token::Namespace() = &peek.token.clone() {
+            eat_token!(self);
+
+            let nmspc_name = {
+                let then = eat_token!(self);
+                if let Token::Identifier(ve) = then.token.clone() {
+                    ve
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected Identifier, got {:?}", then.token),
+                    )
+                }
+            };
+
+            eat_token!(self);
+
+            let mut key = peek_token!(self);
+            let mut program: Vec<Expr> = vec![];
+            loop {
+                if let Token::End() = key.token {
+                    eat_token!(self);
+                    break;
+                }
+                if let Token::EOF() = key.token {
+                    error_at(
+                        &key.filen,
+                        &key.linen,
+                        &key.charn,
+                        &format!("Prematurely reached EOF, did you end your proc?"),
+                    )
+                }
+                program.push(self.parse_expression());
+                key = peek_token!(self);
+            }
+            return Expr::Namespace(nmspc_name, program);
         }
 
         if let Token::Let() = &peek.token.clone() {
