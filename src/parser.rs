@@ -350,7 +350,6 @@ impl Parser<'_> {
         let mut l: Vec<Expr> = vec![];
         while self.tokens.len() > 1 {
             let expr = self.parse_expression();
-            dbg!(expr.clone());
             l.push(expr);
         }
         return Expr::Program(l);
@@ -458,7 +457,6 @@ impl Parser<'_> {
             match peek_token!(self).token {
                 Token::OperatorMultiply() => {
                     let temp = eat_token!(self).token.clone();
-                    dbg!(self.tokens.clone());
                     let right = self.unary();
                     expr = Expr::BinaryOperator(
                         BinaryOperator::Multiply,
@@ -518,7 +516,6 @@ impl Parser<'_> {
                         panic!("Reached maximum argument find depth of 1000! You have way too many arguments!");
                     }
                     let peek = peek_token!(self);
-                    dbg!(peek);
                     if let Token::CloseParen() = peek.token {
                         _ = eat_token!(self);
                         break;
