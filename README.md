@@ -7,6 +7,6 @@ Here is some example code.
 ```js
 import std
 proc main() then
-    std.printf("\n")
+    std.printstr("Hello, world!\n")
 end
 ```
