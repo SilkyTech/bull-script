@@ -18,9 +18,15 @@ proc main () then
 
     callback_proc(proc cb() then std.printval("hello from callback\n") end)
     
+    let test = 0
+
     for i = 0 to 10 then
         let z = i * 2
+
+        test = test + z
+
         std.printlnval(z)
         
     end
+    std.printlnval(test)
 end
