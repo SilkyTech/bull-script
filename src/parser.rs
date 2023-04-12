@@ -417,7 +417,6 @@ impl Parser<'_> {
             }
             return Expr::While(Box::new(expr), program);
         }
-        // TODO: ^ add while loop
         return self.equality();
     }
     pub fn parse_program(&mut self) -> Expr {
