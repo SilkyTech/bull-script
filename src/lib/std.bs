@@ -1,4 +1,9 @@
+namespace std then
+    proc printstrl (string) then
+        builtin.printval(string)
+    end
+    proc print (msg) then
+        builtin.printstr(msg)
+    end
 
-proc print (msg) then
-    builtin.printstr(msg)
 end

@@ -1,0 +1,5 @@
+namespace std then
+    namespace math then
+        let pi = 3
+    end
+end
