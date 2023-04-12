@@ -16,6 +16,7 @@ pub enum Token<'a> {
     Then(),
     Proc(),
     Let(),
+    Const(),
     Namespace(),
 
     If(),
@@ -86,7 +87,7 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 16] = [
+const KEYWORDS: [Keyword; 17] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
@@ -146,6 +147,10 @@ const KEYWORDS: [Keyword; 16] = [
     Keyword {
         str: "let",
         token: Token::Let(),
+    },
+    Keyword {
+        str: "const",
+        token: Token::Const(),
     },
     Keyword {
         str: "namespace",

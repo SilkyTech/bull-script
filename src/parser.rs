@@ -43,6 +43,8 @@ pub enum Expr {
     If(Box<Expr>, Vec<Expr>),
     For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
     VariableDeclaration(Vec<String>, Box<Expr>),
+    ConstantDeclaration(Vec<String>, Box<Expr>),
+    VariableSet(Vec<String>, Box<Expr>),
     Namespace(Vec<String>, Vec<Expr>),
 }
 pub enum Node {
@@ -195,6 +197,36 @@ impl Parser<'_> {
             };
             let expr = self.parse_expression().clone();
             return Expr::VariableDeclaration(varname, Box::new(expr));
+        }
+        if let Token::Const() = &peek.token.clone() {
+            _ = eat_token!(self);
+            let varname = {
+                let then = eat_token!(self);
+                if let Token::Identifier(ve) = then.token.clone() {
+                    ve
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected Identifier, got {:?}", then.token),
+                    )
+                }
+            };
+            _ = {
+                let then = eat_token!(self);
+                if let Token::OperatorSet() = then.token.clone() {
+                } else {
+                    error_at(
+                        &then.filen,
+                        &then.linen,
+                        &then.charn,
+                        &format!("Expected \"=\", got {:?}", then.token),
+                    )
+                }
+            };
+            let expr = self.parse_expression().clone();
+            return Expr::ConstantDeclaration(varname, Box::new(expr));
         }
 
         if let Token::If() = &peek.token.clone() {
@@ -637,6 +669,11 @@ impl Parser<'_> {
                     }
                 }
                 return Expr::Call(parts.clone(), arguments);
+            } else if let Token::OperatorSet() = peek_token!(self).token {
+                // setting variable
+                eat_token!(self);
+                let expr = self.parse_expression();
+                return Expr::VariableSet(parts.clone(), Box::new(expr));
             } else {
                 return Expr::Identifier(parts.to_vec());
             }
