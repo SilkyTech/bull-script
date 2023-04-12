@@ -43,6 +43,7 @@ pub enum Expr {
     Proc(Vec<String>, Vec<String>, Vec<Expr>),
     If(Box<Expr>, Vec<Expr>),
     For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
+    While(Box<Expr>, Vec<Expr>),
     VariableDeclaration(Vec<String>, Box<Expr>),
     ConstantDeclaration(Vec<String>, Box<Expr>),
     VariableSet(Vec<String>, Box<Expr>),
@@ -379,7 +380,7 @@ impl Parser<'_> {
             }
             return Expr::For(varname, Box::new(startval), Box::new(endval), program);
         }
-        /*if let Token::IfKeyword() = &peek.token {
+        if let Token::While() = &peek.token {
             eat_token!(self);
 
             let expr = self.parse_expression();
@@ -387,7 +388,7 @@ impl Parser<'_> {
             // get body of program
             {
                 let then = eat_token!(self);
-                if !matches!(then.token, Token::ThenKeyword(..)) {
+                if !matches!(then.token, Token::Then(..)) {
                     error_at(
                         &then.filen,
                         &then.linen,
@@ -399,7 +400,7 @@ impl Parser<'_> {
             let mut key = peek_token!(self);
             let mut program: Vec<Expr> = vec![];
             loop {
-                if let Token::EndKeyword() = key.token {
+                if let Token::End() = key.token {
                     eat_token!(self);
                     break;
                 }
@@ -414,9 +415,8 @@ impl Parser<'_> {
                 program.push(self.parse_expression());
                 key = peek_token!(self);
             }
-            return Expr::If(Box::new(expr), program);
+            return Expr::While(Box::new(expr), program);
         }
-        */
         // TODO: ^ add while loop
         return self.equality();
     }
