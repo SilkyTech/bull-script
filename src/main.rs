@@ -1,6 +1,6 @@
 use interpreter::Interpreter;
 use lexer::Lexer;
-use parser::{Parser};
+use parser::Parser;
 pub mod error;
 pub mod lexer;
 pub mod parser;
@@ -24,5 +24,5 @@ fn main() {
     let program = parser.parse_program();
 
     let mut inter = Interpreter::new();
-    inter.run_program(program, true);
+    inter.run_program(program, true, vec![]);
 }
