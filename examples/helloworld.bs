@@ -1,0 +1,4 @@
+import std
+proc main () then
+    std.printval("Hello, world!")
+end

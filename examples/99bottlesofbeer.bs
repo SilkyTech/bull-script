@@ -1,0 +1,15 @@
+import std
+
+proc main () then 
+    for i = 0 to 99 then
+        std.printval(99-i)
+        std.printval(" bottles of beer on the wall, ")
+        std.printval(99-i)
+        std.printval(" bottles of beer.\n")
+
+        std.printval("Take one down and pass it around, ")
+        std.printval(99-i-1)
+        std.printval(" bottles of beer on the wall.\n")
+
+    end
+end
