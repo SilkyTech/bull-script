@@ -2,8 +2,10 @@ import std
 import math
 
 proc main () then
-    std.printstrl("Hello, world!\n")
-    builtin.printval("Hello, world!\n")
+    let msg = "Hello, world!\n"
+    std.printval(msg)
+    msg = "Hello, test message!\n"
+    builtin.printval(msg)
 
 
     # random.callback(proc cb() then std.printf("hello from callback") end)
