@@ -2,6 +2,10 @@ namespace std then
     proc printval (string) then
         builtin.printval(string)
     end
+    proc printlnval (string) then
+        builtin.printval(string)
+        builtin.printval("\n")
+    end
     proc print (msg) then
         builtin.printstr(msg)
     end
