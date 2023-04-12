@@ -23,7 +23,7 @@ impl Interpreter {
                     let mut parser = Parser { tokens };
                     let program = parser.parse_program();
                     let mut inter = Interpreter::new();
-                    let vars = inter.run_program(program);
+                    let vars = inter.run_program(program, false);
                     for (k, v) in vars {
                         if variables.contains_key(&k) {
                             panic!("TODO: add better error reporting | variable already defined")
@@ -48,9 +48,25 @@ impl Interpreter {
         return variables.clone();
     }
 
-    pub fn run_program(&mut self, code: Expr) -> HashMap<String, Expr> {
+    pub fn run_proc(&mut self, args: Vec<Expr>, func: Expr, mut scope: HashMap<String, Expr>) {
+        if let Expr::Proc(_name, pargs, prog) = func {
+            for (i, arg) in pargs.iter().enumerate() {
+                scope.insert(arg.to_string(), args[i].clone());
+            }
+            self.run_code(prog, scope);
+        } else {
+            panic!("`run_proc` method didn't receive proc expression")
+        }
+    }
+
+    pub fn run_program(&mut self, code: Expr, main: bool) -> HashMap<String, Expr> {
         if let Expr::Program(p) = code {
-            return self.run_code(p, HashMap::new());
+            let ret = self.run_code(p, HashMap::new());
+            if main {
+                let main = ret.get(&"main".to_string()).expect("Expected main function");
+                
+            }
+            return ret;
         } else {
             panic!("Root expression is not a program")
         }

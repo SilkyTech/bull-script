@@ -16,7 +16,7 @@ fn main() {
         .replace("\r", &contents_raw);
     let lexer = Lexer {
         text: contents,
-        filename: String::from("test.bs"),
+        filename: String::from(argv[1].clone()),
     };
 
     let tokens = lexer.lex();
@@ -24,5 +24,5 @@ fn main() {
     let program = parser.parse_program();
 
     let mut inter = Interpreter::new();
-    inter.run_program(program);
+    inter.run_program(program, true);
 }

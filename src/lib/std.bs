@@ -1,3 +1,4 @@
-proc print (main) then
+
+proc print (msg) then
     builtin.printstr(msg)
 end
