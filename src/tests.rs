@@ -1,5 +1,3 @@
-
-
 #[cfg(test)]
 mod parser {
     use crate::lexer::Lexer;
@@ -15,7 +13,7 @@ mod parser {
                 text: raw.to_string(),
                 filename: String::from($file),
             };
-    
+
             let tokens = lexer.lex();
             let mut parser = Parser { tokens };
             let program = parser.parse_program();
@@ -25,7 +23,7 @@ mod parser {
             }
         }};
     }
-    
+
     #[test]
     fn literal() {
         test_file!(
@@ -58,17 +56,17 @@ mod parser {
     fn math() {
         test_file!(
             "../tests/math.bs",
-            vec![Expr::BinaryOperator(
+            vec![Expr::Binary(
                 BinaryOperator::Multiply,
-                Box::new(Expr::Group(Box::new(Expr::BinaryOperator(
+                Box::new(Expr::Group(Box::new(Expr::Binary(
                     BinaryOperator::Subtract,
-                    Box::new(Expr::BinaryOperator(
+                    Box::new(Expr::Binary(
                         BinaryOperator::Add,
                         Box::new(Expr::Literal(
                             crate::parser::LiteralType::Number,
                             "3".to_string()
                         )),
-                        Box::new(Expr::BinaryOperator(
+                        Box::new(Expr::Binary(
                             BinaryOperator::Multiply,
                             Box::new(Expr::Literal(
                                 crate::parser::LiteralType::Number,
