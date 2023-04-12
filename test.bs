@@ -1,12 +1,15 @@
 import std
+import math
 
 proc main () then
-    std.printf("Hello, world!\n")
+    std.printstrl("Hello, world!\n")
+    builtin.printval("Hello, world!\n")
 
-    random.callback(proc cb() then std.printf("hello from callback") end)
 
-    for i = 0 to 10 then
-        let z = i * 2
-        printf("{}", z)
-    end
+    # random.callback(proc cb() then std.printf("hello from callback") end)
+    # 
+    # for i = 0 to 10 then
+    #     let z = i * 2
+    #     printf("{}", z)
+    # end
 end
