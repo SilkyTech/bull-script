@@ -11,6 +11,12 @@ proc main() then
 end
 ```
 
+## Setup
+
+1. Install cargo
+2. Fork or `git clone` this repo into a folder.
+3. Use `cargo run -- ./test.bs` to run your file
+
 ## Language features
 
 ### "Procedures"
@@ -34,4 +40,4 @@ namespace tests then
 end
 
 tests.tests1()
-111
+```
