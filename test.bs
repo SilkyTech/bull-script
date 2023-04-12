@@ -2,11 +2,11 @@ import std
 import math
 
 proc callback_proc (cb) then
-    std.printval(1)
-    std.printval("\n")
+    std.printlnval(1)
+    # std.printval("\n")
     cb()
-    std.printval(2)
-    std.printval("\n")
+    std.printlnval(2)
+    # std.printval("\n")
 end
 
 proc main () then
@@ -17,9 +17,10 @@ proc main () then
 
 
     callback_proc(proc cb() then std.printval("hello from callback\n") end)
-    # 
-    # for i = 0 to 10 then
-    #     let z = i * 2
-    #     printf("{}", z)
-    # end
+    
+    for i = 0 to 10 then
+        let z = i * 2
+        std.printlnval(z)
+        
+    end
 end
