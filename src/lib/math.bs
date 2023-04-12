@@ -1,5 +1,5 @@
 namespace std then
     namespace math then
-        let pi = 3
+        const pi = 3
     end
 end
