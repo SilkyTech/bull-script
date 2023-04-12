@@ -225,7 +225,7 @@ impl Parser<'_> {
 
             let startval = {
                 let then = eat_token!(self);
-                if let Token::NumericLiteral(f, s) = then.token.clone() {
+                if let Token::NumericLiteral(f, _s) = then.token.clone() {
                     Expr::Literal(LiteralType::Number, f.to_string())
                 } else if let Token::Identifier(ve) = then.token.clone() {
                     Expr::Identifier(ve)
@@ -256,7 +256,7 @@ impl Parser<'_> {
             };
             let endval = {
                 let then = eat_token!(self);
-                if let Token::NumericLiteral(f, s) = then.token.clone() {
+                if let Token::NumericLiteral(f, _s) = then.token.clone() {
                     Expr::Literal(LiteralType::Number, f.to_string())
                 } else if let Token::Identifier(ve) = then.token.clone() {
                     Expr::Identifier(ve)
@@ -360,7 +360,7 @@ impl Parser<'_> {
         loop {
             match peek_token!(self).token {
                 Token::OperatorEquals() => {
-                    let tmp = eat_token!(self);
+                    let _tmp = eat_token!(self);
                     let right = self.comparison();
                     expr = Expr::BinaryOperator(
                         BinaryOperator::Equal,
@@ -456,7 +456,7 @@ impl Parser<'_> {
         loop {
             match peek_token!(self).token {
                 Token::OperatorMultiply() => {
-                    let temp = eat_token!(self).token.clone();
+                    let _temp = eat_token!(self).token.clone();
                     let right = self.unary();
                     expr = Expr::BinaryOperator(
                         BinaryOperator::Multiply,
@@ -506,7 +506,7 @@ impl Parser<'_> {
         if let Token::ProcKeyword() = &p.token {
             let name = eat_token!(self);
             if let Token::Identifier(n) = name.token.clone() {
-                let open = eat_token!(self);
+                let _open = eat_token!(self);
                 let mut args: Vec<String> = vec![];
                 let do_loop = true;
                 let mut depth = 0;

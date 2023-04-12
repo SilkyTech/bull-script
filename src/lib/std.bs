@@ -1,0 +1,3 @@
+proc print (main) then
+    builtin.printstr(msg)
+end

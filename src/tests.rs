@@ -1,21 +1,4 @@
-macro_rules! test_file {
-    ($file: expr, $correct: expr) => {{
-        let raw = include_str!($file).replace("\r", &"");
-        dbg!(raw.clone());
-        let lexer = Lexer {
-            text: raw.to_string(),
-            filename: String::from($file),
-        };
 
-        let tokens = lexer.lex();
-        let mut parser = Parser { tokens };
-        let program = parser.parse_program();
-        if let Expr::Program(p) = program {
-            println!("{:?}", p);
-            assert_eq!(p, $correct)
-        }
-    }};
-}
 
 #[cfg(test)]
 mod parser {
@@ -23,6 +6,26 @@ mod parser {
     use crate::parser::Expr;
     use crate::parser::Parser;
     use crate::parser::{BinaryOperator, UnaryOperator};
+
+    macro_rules! test_file {
+        ($file: expr, $correct: expr) => {{
+            let raw = include_str!($file).replace("\r", &"");
+            dbg!(raw.clone());
+            let lexer = Lexer {
+                text: raw.to_string(),
+                filename: String::from($file),
+            };
+    
+            let tokens = lexer.lex();
+            let mut parser = Parser { tokens };
+            let program = parser.parse_program();
+            if let Expr::Program(p) = program {
+                println!("{:?}", p);
+                assert_eq!(p, $correct)
+            }
+        }};
+    }
+    
     #[test]
     fn literal() {
         test_file!(

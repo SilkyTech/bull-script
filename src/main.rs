@@ -1,9 +1,11 @@
+use interpreter::Interpreter;
 use lexer::Lexer;
-use parser::{Expr, Parser};
+use parser::{Parser};
 pub mod error;
 pub mod lexer;
 pub mod parser;
 use std::{env, fs};
+pub mod interpreter;
 pub mod tests;
 
 fn main() {
@@ -20,7 +22,7 @@ fn main() {
     let tokens = lexer.lex();
     let mut parser = Parser { tokens };
     let program = parser.parse_program();
-    if let Expr::Program(p) = program {
-        dbg!(p);
-    }
+
+    let mut inter = Interpreter::new();
+    inter.run_program(program);
 }
