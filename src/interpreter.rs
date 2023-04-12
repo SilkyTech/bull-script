@@ -5,6 +5,10 @@ use crate::{
     parser::{Expr, LiteralType, Parser},
 };
 
+fn unbox<T>(value: Box<T>) -> T {
+    *value
+}
+
 pub struct Interpreter {}
 impl Interpreter {
     pub fn run_code(
@@ -80,7 +84,10 @@ impl Interpreter {
                                         Expr::Identifier(name) => {
                                             let var = variables.get(&name.clone());
                                             match var {
-                                                None => panic!("Variable doesn't exist"),
+                                                None => panic!(
+                                                    "Variable \"{}\" doesn't exist",
+                                                    name.join(".")
+                                                ),
                                                 Some(v) => func(v.clone(), variables.clone()),
                                             }
                                         }
@@ -111,6 +118,15 @@ impl Interpreter {
                         }
                         None => panic!("{} is not defined", name.join(".")),
                     }
+                }
+            } else if let Expr::VariableDeclaration(name, expr) = expr.clone() {
+                if !variables.contains_key(&name) {
+                    variables.insert(name, unbox(expr));
+                } else {
+                    panic!(
+                        "Variable named \"{}\" has already been defined",
+                        name.join(".")
+                    );
                 }
             } else {
                 println!("Unknown instruction: {:?}", expr);
