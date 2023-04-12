@@ -128,6 +128,13 @@ impl Interpreter {
                         name.join(".")
                     );
                 }
+            } else if let Expr::VariableSet(name, expr) = expr.clone() {
+                // setting a variable
+                if variables.contains_key(&name) {
+                    variables.insert(name, unbox(expr));
+                } else {
+                    panic!("Variable named \"{}\" isn't defined", name.join("."));
+                }
             } else {
                 println!("Unknown instruction: {:?}", expr);
             }
