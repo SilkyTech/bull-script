@@ -501,7 +501,7 @@ fn is_valid_number(str: &String, loc: &Loc) -> (bool, String, f64) {
     let re = Regex::new(r"^[0-9]+(\.[0-9]+f)?$").expect("Invalid regex at `is_valid_number`");
     if re.is_match(&str) {
         if str.ends_with("f") {
-            let float = str[0..str.len() - 2].parse::<f64>();
+            let float = str[0..str.len() - 1].parse::<f64>();
             match float {
                 Ok(value) => {
                     return (true, "float".to_owned(), value);
