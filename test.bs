@@ -30,5 +30,8 @@ proc main () then
     end
     std.printlnval(test)
 
-    std.printlnval(test + 3.14159f)
+    std.printlnval(test + std.math.pi)
+    let zo = 0.1f
+    let zt = 0.2f
+    std.printlnval(zo + zt)
 end
