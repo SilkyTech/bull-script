@@ -231,7 +231,7 @@ impl Interpreter {
                 } else {
                     match variables.get(&name) {
                         Some(v) => {
-                            if let Expr::Proc(_name, arg, prog) = v {
+                            if let Expr::Proc(_name, _arg, prog) = v {
                                 let vars = self.run_proc(
                                     args.clone(),
                                     v.clone(),
