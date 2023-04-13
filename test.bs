@@ -13,7 +13,7 @@ proc main () then
     let msg = "Hello, world!\n"
     std.printval(msg)
     msg = "Hello, test message!\n"
-    builtin.printva(msg)
+    builtin.printval(msg)
 
 
     callback_proc(proc cb() then std.printval("hello from callback\n") end)

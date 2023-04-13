@@ -89,6 +89,9 @@ impl Interpreter {
                                 )
                             );
                         }
+                        "debugvars" => {
+                            dbg!(variables.clone());
+                        }
                         _ => qerror!(
                             exprwl,
                             format!("No subcommand called '{}' in builtin functions", v),
@@ -195,18 +198,7 @@ impl Interpreter {
             } else if let Expr::Call(_name, _args) = expr.clone() {
                 self.run_proc_name(exprwl, variables.clone(), namespace.clone());
             } else if let Expr::VariableDeclaration(name, expr) = expr.clone() {
-                if !variables.contains_key(&name) {
-                    variables.insert(name, unbox(expr));
-                } else {
-                    qerror!(
-                        exprwl,
-                        format!(
-                            "Variable named \"{}\" has already been defined",
-                            name.join(".")
-                        ),
-                        self.stack
-                    );
-                }
+                variables.insert(name, unbox(expr));
             } else if let Expr::ConstantDeclaration(name, expr) = expr.clone() {
                 if !variables.contains_key(&name) {
                     let new_namespace = namespace.clone();
@@ -243,8 +235,8 @@ impl Interpreter {
                 let end = self.resolve_variable(unbox(end), variables.clone(), namespace.clone());
                 if let LiteralType::Number = start.0 {
                     if let LiteralType::Number = end.0 {
-                        let start = start.1.parse::<i32>().unwrap();
-                        let end = end.1.parse::<i32>().unwrap();
+                        let start = start.1.parse::<f64>().unwrap().round() as i64;
+                        let end = end.1.parse::<f64>().unwrap().round() as i64;
                         for i in start..end {
                             let mut new_vars = variables.clone();
                             new_vars.insert(
@@ -262,8 +254,29 @@ impl Interpreter {
                         }
                     }
                 }
+            } else if let Expr::If(cond, prog) = expr.clone() {
+                let pred = self.resolve_variable(
+                    unbox(cond.clone()),
+                    variables.clone(),
+                    namespace.clone(),
+                );
+                if let LiteralType::Boolean = pred.0 {
+                    if pred.1 == "true".to_string() {
+                        self.run_code(prog, variables.clone(), namespace.clone());
+                    }
+                } else {
+                    qerror!(
+                        unbox(cond.clone()),
+                        "If statement result has to be a boolean",
+                        self.stack
+                    )
+                }
             } else if let Expr::Return(expr) = expr.clone() {
-                return (unbox(expr), variables.clone());
+                let lit = unbox(expr.clone());
+                let lit = self.resolve_variable(lit, variables.clone(), namespace.clone());
+                let lit = Expr::Literal(lit.0, lit.1);
+                let lit = ctwl!(lit, unbox(expr.clone()));
+                return (lit, variables.clone());
             } else {
                 println!("Unknown instruction: {:?}", expr);
             }
@@ -374,7 +387,7 @@ impl Interpreter {
                 }
                 BinaryOperator::Lesser => {
                     return (
-                        LiteralType::Number,
+                        LiteralType::Boolean,
                         (to_num(self.resolve_variable(
                             unbox(left),
                             variables.clone(),
@@ -389,7 +402,7 @@ impl Interpreter {
                 }
                 BinaryOperator::LesserEqual => {
                     return (
-                        LiteralType::Number,
+                        LiteralType::Boolean,
                         (to_num(self.resolve_variable(
                             unbox(left),
                             variables.clone(),
@@ -404,7 +417,7 @@ impl Interpreter {
                 }
                 BinaryOperator::Greater => {
                     return (
-                        LiteralType::Number,
+                        LiteralType::Boolean,
                         (to_num(self.resolve_variable(
                             unbox(left),
                             variables.clone(),
@@ -419,7 +432,7 @@ impl Interpreter {
                 }
                 BinaryOperator::GreaterEqual => {
                     return (
-                        LiteralType::Number,
+                        LiteralType::Boolean,
                         (to_num(self.resolve_variable(
                             unbox(left),
                             variables.clone(),
@@ -512,7 +525,7 @@ impl Interpreter {
                     }
                 }
             }
-            Expr::Call(name, args) => {
+            Expr::Call(..) => {
                 let res = self.run_proc_name(y.clone(), variables.clone(), namespace.clone());
                 return self.resolve_variable(res.0.clone(), variables.clone(), namespace.clone());
             }
@@ -534,10 +547,12 @@ impl Interpreter {
     ) -> (ExprWL, HashMap<Vec<String>, ExprWL>) {
         if let Expr::Proc(_name, pargs, prog) = func.expr {
             for (i, arg) in pargs.iter().enumerate() {
-                scope.insert(vec![arg.to_string()], args[i].clone());
+                let r = self.resolve_variable(args[i].clone(), scope.clone(), namespace.clone());
+                let r = Expr::Literal(r.0, r.1);
+                scope.insert(vec![arg.to_string()], ctwl!(r, args[i].clone()));
             }
 
-            let res = self.run_code(prog, scope, namespace.clone());
+            let res = self.run_code(prog, scope.clone(), namespace.clone());
 
             return res.clone();
         } else {

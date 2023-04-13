@@ -2,10 +2,14 @@ import std
 import math
 
 proc euler(prev, depth) then
+    std.printlnval(depth)
     if depth > 50 then
+        std.printlnval("reached max")
         return prev
     end
-    return euler((prev + 1/factorial(prev)), depth + 1)
+    let ps = prev + 1/factorial(prev)
+    let ret = euler(ps, depth + 1)
+    return ret
 end
 
 proc factorial(num) then
@@ -14,6 +18,7 @@ proc factorial(num) then
         p = p * i
     end
 
+    
     return p
 end
 
