@@ -9,11 +9,11 @@ fn unbox<T>(value: Box<T>) -> T {
     *value
 }
 fn resolve_math(val: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralType, String) {
-    fn to_num(v: (LiteralType, String)) -> i32 {
+    fn to_num(v: (LiteralType, String)) -> f64 {
         if let LiteralType::Number = v.0 {
-            return v.1.parse::<i32>().unwrap();
+            return v.1.parse::<f64>().unwrap();
         } else if let LiteralType::Boolean = v.0 {
-            return v.1.parse::<i32>().unwrap();
+            return v.1.parse::<f64>().unwrap();
         } else {
             panic!("")
         }
@@ -120,7 +120,8 @@ fn resolve_math(val: Expr, variables: HashMap<Vec<String>, Expr>) -> (LiteralTyp
             UnaryOperator::LogicalNot => {
                 return (
                     LiteralType::Boolean,
-                    (!to_num(resolve_variable(unbox(right), variables.clone()))).to_string(),
+                    (!(to_num(resolve_variable(unbox(right), variables.clone())).round() as i32))
+                        .to_string(),
                 )
             }
         }

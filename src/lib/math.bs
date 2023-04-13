@@ -1,5 +1,5 @@
 namespace std then
     namespace math then
-        const pi = 3
+        const pi = 3.14159f
     end
 end

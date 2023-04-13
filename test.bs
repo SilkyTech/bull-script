@@ -29,4 +29,6 @@ proc main () then
         
     end
     std.printlnval(test)
+
+    std.printlnval(test + 3.14159f)
 end
