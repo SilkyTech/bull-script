@@ -33,26 +33,31 @@ pub enum BinaryOperator {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Literal(LiteralType, String),
-    Program(Vec<Expr>),
-    Group(Box<Expr>),
-    Unary(UnaryOperator, Box<Expr>),
-    Binary(BinaryOperator, Box<Expr>, Box<Expr>),
+    Program(Vec<ExprWL>),
+    Group(Box<ExprWL>),
+    Unary(UnaryOperator, Box<ExprWL>),
+    Binary(BinaryOperator, Box<ExprWL>, Box<ExprWL>),
     Identifier(Vec<String>),
-    Call(Vec<String>, Vec<Expr>),
+    Call(Vec<String>, Vec<ExprWL>),
     // Import(Relative import?, path)
     Import(bool, String),
-    Proc(Vec<String>, Vec<String>, Vec<Expr>),
-    If(Box<Expr>, Vec<Expr>),
-    For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
-    While(Box<Expr>, Vec<Expr>),
-    Return(Box<Expr>),
-    VariableDeclaration(Vec<String>, Box<Expr>),
-    ConstantDeclaration(Vec<String>, Box<Expr>),
-    VariableSet(Vec<String>, Box<Expr>),
-    Namespace(Vec<String>, Vec<Expr>),
+    Proc(Vec<String>, Vec<String>, Vec<ExprWL>),
+    If(Box<ExprWL>, Vec<ExprWL>),
+    For(Vec<String>, Box<ExprWL>, Box<ExprWL>, Vec<ExprWL>),
+    While(Box<ExprWL>, Vec<ExprWL>),
+    Return(Box<ExprWL>),
+    VariableDeclaration(Vec<String>, Box<ExprWL>),
+    ConstantDeclaration(Vec<String>, Box<ExprWL>),
+    VariableSet(Vec<String>, Box<ExprWL>),
+    Namespace(Vec<String>, Vec<ExprWL>),
 }
-pub enum Node {
-    ProcCall(/*Arguments*/ Vec<Expr>),
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExprWL {
+    pub expr: Expr,
+    pub linen: i32,
+    pub charn: i32,
+    pub filen: String,
 }
 
 #[derive(Clone)]
@@ -69,8 +74,20 @@ macro_rules! peek_token {
     ($self: ident) => {{
         let tok = &$self.tokens[0];
 
-        tok
+        tok.clone()
     }};
+}
+
+#[macro_export]
+macro_rules! ctwl {
+    ($t: expr, $s: expr) => {
+        ExprWL {
+            expr: $t.clone(),
+            linen: $s.clone().linen.clone(),
+            filen: $s.clone().filen.clone(),
+            charn: $s.clone().charn.clone(),
+        }
+    };
 }
 
 /*
@@ -88,14 +105,14 @@ operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
  */
 
 impl Parser<'_> {
-    pub fn parse_expression(&mut self) -> Expr {
+    pub fn parse_expression(&mut self) -> ExprWL {
         let peek = peek_token!(self);
         if let Token::ImportKeyword() = &peek.token.clone() {
             let peek = eat_token!(self);
             let path = eat_token!(self);
             match path.token.clone() {
-                Token::StringLiteral(str) => return Expr::Import(true, str),
-                Token::Identifier(vec) => return Expr::Import(false, vec.join(".")),
+                Token::StringLiteral(str) => return ctwl!(Expr::Import(true, str), peek),
+                Token::Identifier(vec) => return ctwl!(Expr::Import(false, vec.join(".")), peek),
                 _ => error_at(
                     &peek.filen,
                     &peek.linen,
@@ -125,7 +142,7 @@ impl Parser<'_> {
             _ = eat_token!(self);
 
             let mut key = peek_token!(self);
-            let mut program: Vec<Expr> = vec![];
+            let mut program: Vec<ExprWL> = vec![];
             loop {
                 if let Token::End() = key.token {
                     _ = eat_token!(self);
@@ -142,7 +159,7 @@ impl Parser<'_> {
                 program.push(self.parse_expression());
                 key = peek_token!(self);
             }
-            return Expr::Namespace(nmspc_name, program);
+            return ctwl!(Expr::Namespace(nmspc_name, program), peek);
         }
 
         if let Token::Let() = peek.token.clone() {
@@ -173,7 +190,7 @@ impl Parser<'_> {
                 }
             };
             let expr = self.parse_expression().clone();
-            return Expr::VariableDeclaration(varname, Box::new(expr));
+            return ctwl!(Expr::VariableDeclaration(varname, Box::new(expr)), peek);
         }
         if let Token::Const() = peek.token.clone() {
             _ = eat_token!(self);
@@ -203,7 +220,7 @@ impl Parser<'_> {
                 }
             };
             let expr = self.parse_expression().clone();
-            return Expr::ConstantDeclaration(varname, Box::new(expr));
+            return ctwl!(Expr::ConstantDeclaration(varname, Box::new(expr)), peek);
         }
 
         if let Token::If() = peek.token.clone() {
@@ -224,7 +241,7 @@ impl Parser<'_> {
                 };
             }
             let mut key = peek_token!(self);
-            let mut program: Vec<Expr> = vec![];
+            let mut program: Vec<ExprWL> = vec![];
             loop {
                 if let Token::End() = key.token {
                     _ = eat_token!(self);
@@ -241,7 +258,7 @@ impl Parser<'_> {
                 program.push(self.parse_expression());
                 key = peek_token!(self);
             }
-            return Expr::If(Box::new(expr), program);
+            return ctwl!(Expr::If(Box::new(expr), program), peek);
         }
         if let Token::For() = peek.token.clone() {
             _ = eat_token!(self);
@@ -273,24 +290,27 @@ impl Parser<'_> {
                 }
             };
 
-            let startval = {
-                let then = eat_token!(self);
-                if let Token::NumericLiteral(f, _s) = then.token.clone() {
-                    Expr::Literal(LiteralType::Number, f.to_string())
-                } else if let Token::Identifier(ve) = then.token.clone() {
-                    Expr::Identifier(ve)
-                } else {
-                    error_at(
-                        &then.filen,
-                        &then.linen,
-                        &then.charn,
-                        &format!(
-                            "Expected Identifier or numeric literal, got {:?}",
-                            then.token
-                        ),
-                    )
-                }
-            };
+            let startval = ctwl!(
+                {
+                    let then = eat_token!(self);
+                    if let Token::NumericLiteral(f, _s) = then.token.clone() {
+                        Expr::Literal(LiteralType::Number, f.to_string())
+                    } else if let Token::Identifier(ve) = then.token.clone() {
+                        Expr::Identifier(ve)
+                    } else {
+                        error_at(
+                            &then.filen,
+                            &then.linen,
+                            &then.charn,
+                            &format!(
+                                "Expected Identifier or numeric literal, got {:?}",
+                                then.token
+                            ),
+                        )
+                    }
+                },
+                peek
+            );
 
             _ = {
                 let then = eat_token!(self);
@@ -304,24 +324,27 @@ impl Parser<'_> {
                     )
                 }
             };
-            let endval = {
-                let then = eat_token!(self);
-                if let Token::NumericLiteral(f, _s) = then.token.clone() {
-                    Expr::Literal(LiteralType::Number, f.to_string())
-                } else if let Token::Identifier(ve) = then.token.clone() {
-                    Expr::Identifier(ve)
-                } else {
-                    error_at(
-                        &then.filen,
-                        &then.linen,
-                        &then.charn,
-                        &format!(
-                            "Expected Identifier or numeric literal, got {:?}",
-                            then.token
-                        ),
-                    )
-                }
-            };
+            let endval = ctwl!(
+                {
+                    let then = eat_token!(self);
+                    if let Token::NumericLiteral(f, _s) = then.token.clone() {
+                        Expr::Literal(LiteralType::Number, f.to_string())
+                    } else if let Token::Identifier(ve) = then.token.clone() {
+                        Expr::Identifier(ve)
+                    } else {
+                        error_at(
+                            &then.filen,
+                            &then.linen,
+                            &then.charn,
+                            &format!(
+                                "Expected Identifier or numeric literal, got {:?}",
+                                then.token
+                            ),
+                        )
+                    }
+                },
+                peek
+            );
 
             // get body of program
             {
@@ -336,7 +359,7 @@ impl Parser<'_> {
                 };
             }
             let mut key = peek_token!(self);
-            let mut program: Vec<Expr> = vec![];
+            let mut program: Vec<ExprWL> = vec![];
             loop {
                 if let Token::End() = key.token {
                     _ = eat_token!(self);
@@ -353,7 +376,10 @@ impl Parser<'_> {
                 program.push(self.parse_expression());
                 key = peek_token!(self);
             }
-            return Expr::For(varname, Box::new(startval), Box::new(endval), program);
+            return ctwl!(
+                Expr::For(varname, Box::new(startval), Box::new(endval), program),
+                peek
+            );
         }
         if let Token::While() = peek.token.clone() {
             _ = eat_token!(self);
@@ -373,7 +399,7 @@ impl Parser<'_> {
                 };
             }
             let mut key = peek_token!(self);
-            let mut program: Vec<Expr> = vec![];
+            let mut program: Vec<ExprWL> = vec![];
             loop {
                 if let Token::End() = key.token {
                     _ = eat_token!(self);
@@ -390,140 +416,212 @@ impl Parser<'_> {
                 program.push(self.parse_expression());
                 key = peek_token!(self);
             }
-            return Expr::While(Box::new(expr), program);
+            return ctwl!(Expr::While(Box::new(expr), program), peek);
         }
         if let Token::Return() = peek.token.clone() {
             _ = eat_token!(self);
             let expr = self.parse_expression();
-            return Expr::Return(Box::new(expr));
+            return ctwl!(Expr::Return(Box::new(expr)), peek);
         }
         return self.equality();
     }
-    pub fn parse_program(&mut self) -> Expr {
-        let mut l: Vec<Expr> = vec![];
+    pub fn parse_program(&mut self) -> ExprWL {
+        let mut l: Vec<ExprWL> = vec![];
         while self.tokens.len() > 1 {
             let expr = self.parse_expression();
             l.push(expr);
         }
-        return Expr::Program(l);
+        return ctwl!(Expr::Program(l), self.tokens[0]);
     }
     // MATH
-    fn equality(&mut self) -> Expr {
+    fn equality(&mut self) -> ExprWL {
         let mut expr = self.comparison();
         loop {
             match peek_token!(self).token {
                 Token::OperatorEquals() => {
                     let _tmp = eat_token!(self);
                     let right = self.comparison();
-                    expr = Expr::Binary(BinaryOperator::Equal, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Equal,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 Token::OperatorNotEquals() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.comparison();
-                    expr = Expr::Binary(BinaryOperator::NotEqual, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::NotEqual,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr.clone()
+                    );
                 }
                 _ => break,
             }
         }
         return expr;
     }
-    fn comparison(&mut self) -> Expr {
+    fn comparison(&mut self) -> ExprWL {
         let mut expr = self.term();
         loop {
             match peek_token!(self).token {
                 Token::OperatorGreater() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::Binary(BinaryOperator::Greater, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Greater,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 Token::OperatorLesser() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Lesser,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 Token::OperatorLesserEqual() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Lesser,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 Token::OperatorGreaterEqual() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.term();
-                    expr = Expr::Binary(BinaryOperator::Lesser, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Lesser,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 _ => break,
             }
         }
         return expr;
     }
-    fn term(&mut self) -> Expr {
+    fn term(&mut self) -> ExprWL {
         let mut expr = self.factor();
         loop {
             match peek_token!(self).token {
                 Token::OperatorSubtract() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.factor();
-                    expr = Expr::Binary(BinaryOperator::Subtract, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Subtract,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr
+                    );
                 }
                 Token::OperatorAdd() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.factor();
-                    expr = Expr::Binary(BinaryOperator::Add, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(BinaryOperator::Add, Box::new(expr.clone()), Box::new(right)),
+                        expr
+                    );
                 }
                 _ => break,
             }
         }
         return expr;
     }
-    fn factor(&mut self) -> Expr {
+    fn factor(&mut self) -> ExprWL {
         let mut expr = self.unary();
         loop {
             match peek_token!(self).token {
                 Token::OperatorMultiply() => {
                     let _temp = eat_token!(self).token.clone();
                     let right = self.unary();
-                    expr = Expr::Binary(BinaryOperator::Multiply, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Multiply,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr.clone()
+                    );
                 }
                 Token::OperatorDivide() => {
                     _ = eat_token!(self).token.clone();
                     let right = self.unary();
-                    expr = Expr::Binary(BinaryOperator::Divide, Box::new(expr), Box::new(right));
+                    expr = ctwl!(
+                        Expr::Binary(
+                            BinaryOperator::Divide,
+                            Box::new(expr.clone()),
+                            Box::new(right)
+                        ),
+                        expr.clone()
+                    );
                 }
                 _ => break,
             }
         }
         return expr;
     }
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> ExprWL {
         match peek_token!(self).token {
             Token::OperatorSubtract() => {
                 _ = eat_token!(self).token.clone();
                 let right = self.primary();
-                return Expr::Unary(UnaryOperator::Negative, Box::new(right));
+                return ctwl!(
+                    Expr::Unary(UnaryOperator::Negative, Box::new(right.clone())),
+                    right.clone()
+                );
             }
             Token::OperatorLogicalNot() => {
                 _ = eat_token!(self).token.clone();
                 let right = self.primary();
-                return Expr::Unary(UnaryOperator::LogicalNot, Box::new(right));
+                return ctwl!(
+                    Expr::Unary(UnaryOperator::LogicalNot, Box::new(right.clone())),
+                    right.clone()
+                );
             }
             _ => {}
         }
         return self.primary();
     }
-    fn primary(&mut self) -> Expr {
+    fn primary(&mut self) -> ExprWL {
         let p = eat_token!(self);
 
         if let Token::StringLiteral(str) = &p.token {
-            return Expr::Literal(LiteralType::String, str.to_string());
+            return ctwl!(Expr::Literal(LiteralType::String, str.to_string()), p);
         }
         if let Token::NumericLiteral(num, _) = &p.token {
-            return Expr::Literal(LiteralType::Number, num.to_string());
+            return ctwl!(Expr::Literal(LiteralType::Number, num.to_string()), p);
         }
         if let Token::BooleanLiteral(b) = &p.token {
             return if b.clone() {
-                Expr::Literal(LiteralType::Boolean, "1".to_string())
+                ctwl!(Expr::Literal(LiteralType::Boolean, "1".to_string()), p)
             } else {
-                Expr::Literal(LiteralType::Boolean, "0".to_string())
+                ctwl!(Expr::Literal(LiteralType::Boolean, "0".to_string()), p)
             };
         }
         if let Token::Proc() = &p.token {
@@ -575,7 +673,7 @@ impl Parser<'_> {
                     };
                 }
                 let mut key = peek_token!(self);
-                let mut program: Vec<Expr> = vec![];
+                let mut program: Vec<ExprWL> = vec![];
                 loop {
                     if let Token::End() = key.token {
                         _ = eat_token!(self);
@@ -592,7 +690,7 @@ impl Parser<'_> {
                     program.push(self.parse_expression());
                     key = peek_token!(self);
                 }
-                return Expr::Proc(n, args, program);
+                return ctwl!(Expr::Proc(n, args, program), p);
             } else {
                 error_at(
                     &name.filen,
@@ -605,7 +703,7 @@ impl Parser<'_> {
         if let Token::Identifier(parts) = &p.token {
             if let Token::OpenParen() = peek_token!(self).token {
                 _ = eat_token!(self);
-                let mut arguments: Vec<Expr> = vec![];
+                let mut arguments: Vec<ExprWL> = vec![];
                 loop {
                     if let Token::CloseParen() = peek_token!(self).token {
                         _ = eat_token!(self);
@@ -618,14 +716,14 @@ impl Parser<'_> {
                         continue;
                     }
                 }
-                return Expr::Call(parts.clone(), arguments);
+                return ctwl!(Expr::Call(parts.clone(), arguments), p);
             } else if let Token::OperatorSet() = peek_token!(self).token {
                 // setting variable
                 _ = eat_token!(self);
                 let expr = self.parse_expression();
-                return Expr::VariableSet(parts.clone(), Box::new(expr));
+                return ctwl!(Expr::VariableSet(parts.clone(), Box::new(expr)), p);
             } else {
-                return Expr::Identifier(parts.to_vec());
+                return ctwl!(Expr::Identifier(parts.to_vec()), p);
             }
         }
         if let Token::OpenParen() = &p.token {
@@ -640,7 +738,7 @@ impl Parser<'_> {
             }
             let close = eat_token!(self).token.clone();
             if let Token::CloseParen() = close {
-                return Expr::Group(Box::new(expr));
+                return ctwl!(Expr::Group(Box::new(expr)), p);
             }
             error_at(
                 &p.filen,
