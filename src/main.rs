@@ -6,7 +6,6 @@ pub mod lexer;
 pub mod parser;
 use std::{env, fs};
 pub mod interpreter;
-pub mod tests;
 
 fn main() {
     let argv: Vec<String> = env::args().collect();
