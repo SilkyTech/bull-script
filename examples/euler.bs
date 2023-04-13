@@ -1,0 +1,24 @@
+import std
+import math
+
+proc euler(prev, depth) then
+    if depth > 50 then
+        return prev
+    end
+    return euler((prev + 1/factorial(prev)), depth + 1)
+end
+
+proc factorial(num) then
+    let p = 1
+    for i = 1 to num then
+        p = p * i
+    end
+
+    return p
+end
+
+
+proc main() then
+    std.printlnval(std.math.e)
+    std.printlnval(euler(0, 1))
+end

@@ -23,6 +23,7 @@ pub enum Token<'a> {
     For(),
     While(),
     To(),
+    Return(),
 
     Identifier(Vec<String>),
     Unknown(String),
@@ -88,7 +89,7 @@ struct Keyword<'a> {
     str: &'a str,
     token: Token<'a>,
 }
-const KEYWORDS: [Keyword; 19] = [
+const KEYWORDS: [Keyword; 20] = [
     Keyword {
         str: "import",
         token: Token::ImportKeyword(),
@@ -164,6 +165,10 @@ const KEYWORDS: [Keyword; 19] = [
     Keyword {
         str: "false",
         token: Token::BooleanLiteral(false),
+    },
+    Keyword {
+        str: "return",
+        token: Token::Return(),
     },
 ];
 

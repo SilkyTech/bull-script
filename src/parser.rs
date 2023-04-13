@@ -8,6 +8,7 @@ pub enum LiteralType {
     String,
     Number,
     Boolean,
+    Null,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperator {
@@ -44,6 +45,7 @@ pub enum Expr {
     If(Box<Expr>, Vec<Expr>),
     For(Vec<String>, Box<Expr>, Box<Expr>, Vec<Expr>),
     While(Box<Expr>, Vec<Expr>),
+    Return(Box<Expr>),
     VariableDeclaration(Vec<String>, Box<Expr>),
     ConstantDeclaration(Vec<String>, Box<Expr>),
     VariableSet(Vec<String>, Box<Expr>),
@@ -86,33 +88,6 @@ operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
  */
 
 impl Parser<'_> {
-    pub fn check_binary(&mut self, op: TWL) -> bool {
-        match op.token {
-            Token::OperatorAdd()
-            | Token::OperatorSubtract()
-            | Token::OperatorMultiply()
-            | Token::OperatorDivide()
-            | Token::OperatorMod()
-            | Token::OperatorSet()
-            | Token::OperatorEquals()
-            | Token::OperatorNotEquals()
-            | Token::OperatorLogicalAnd()
-            | Token::OperatorLogicalOr()
-            | Token::OperatorLogicalNot()
-            | Token::OperatorGreater()
-            | Token::OperatorLesser() => {
-                let mut p = self.clone();
-                let expr = p.parse_expression();
-                match expr {
-                    Expr::Group(..) | Expr::Literal(..) => return true,
-                    _ => return false,
-                }
-            }
-            _ => {
-                return false;
-            }
-        }
-    }
     pub fn parse_expression(&mut self) -> Expr {
         let peek = peek_token!(self);
         if let Token::ImportKeyword() = &peek.token.clone() {
@@ -130,7 +105,7 @@ impl Parser<'_> {
             }
         }
 
-        if let Token::Namespace() = &peek.token.clone() {
+        if let Token::Namespace() = peek.token.clone() {
             _ = eat_token!(self);
 
             let nmspc_name = {
@@ -170,7 +145,7 @@ impl Parser<'_> {
             return Expr::Namespace(nmspc_name, program);
         }
 
-        if let Token::Let() = &peek.token.clone() {
+        if let Token::Let() = peek.token.clone() {
             _ = eat_token!(self);
             let varname = {
                 let then = eat_token!(self);
@@ -200,7 +175,7 @@ impl Parser<'_> {
             let expr = self.parse_expression().clone();
             return Expr::VariableDeclaration(varname, Box::new(expr));
         }
-        if let Token::Const() = &peek.token.clone() {
+        if let Token::Const() = peek.token.clone() {
             _ = eat_token!(self);
             let varname = {
                 let then = eat_token!(self);
@@ -231,7 +206,7 @@ impl Parser<'_> {
             return Expr::ConstantDeclaration(varname, Box::new(expr));
         }
 
-        if let Token::If() = &peek.token.clone() {
+        if let Token::If() = peek.token.clone() {
             _ = eat_token!(self);
 
             let expr = self.parse_expression();
@@ -268,7 +243,7 @@ impl Parser<'_> {
             }
             return Expr::If(Box::new(expr), program);
         }
-        if let Token::For() = &peek.token.clone() {
+        if let Token::For() = peek.token.clone() {
             _ = eat_token!(self);
 
             let varname = {
@@ -380,7 +355,7 @@ impl Parser<'_> {
             }
             return Expr::For(varname, Box::new(startval), Box::new(endval), program);
         }
-        if let Token::While() = &peek.token {
+        if let Token::While() = peek.token.clone() {
             _ = eat_token!(self);
 
             let expr = self.parse_expression();
@@ -416,6 +391,11 @@ impl Parser<'_> {
                 key = peek_token!(self);
             }
             return Expr::While(Box::new(expr), program);
+        }
+        if let Token::Return() = peek.token.clone() {
+            _ = eat_token!(self);
+            let expr = self.parse_expression();
+            return Expr::Return(Box::new(expr));
         }
         return self.equality();
     }
