@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ctwl,
-    error::error_at,
+    error::error_at_with_stack_trace,
     lexer::Lexer,
     parser::{BinaryOperator, Expr, ExprWL, LiteralType, Parser, UnaryOperator},
 };
@@ -20,8 +20,9 @@ macro_rules! insert_variables_from_run_proc {
     }};
 }
 macro_rules! qerror {
-    ($p: expr, $f: expr) => {
-        error_at(
+    ($p: expr, $f: expr, $s: expr) => {
+        error_at_with_stack_trace(
+            $s.clone(),
             &$p.filen.clone(),
             &$p.linen.clone(),
             &$p.charn.clone(),
@@ -30,7 +31,17 @@ macro_rules! qerror {
     };
 }
 
-pub struct Interpreter {}
+#[derive(Clone)]
+pub struct Location {
+    pub name: Vec<String>,
+    pub filen: String,
+    pub charn: i32,
+    pub linen: i32,
+}
+
+pub struct Interpreter {
+    stack: Vec<Location>,
+}
 impl Interpreter {
     pub fn run_proc_name(
         &mut self,
@@ -43,7 +54,7 @@ impl Interpreter {
             if name.starts_with(vec!["builtin".to_string()].as_slice()) {
                 let subcmd = name.iter().nth(1);
                 match subcmd {
-                    None => qerror!(exprwl, &"No subcommand for 'builtin' namespace"),
+                    None => qerror!(exprwl, &"No subcommand for 'builtin' namespace", self.stack),
                     Some(v) => match v.as_str() {
                         "printval" => {
                             assert_eq!(args.len(), 1, "Argument length required to be one: usage `builtin.printstr($val)`");
@@ -80,7 +91,8 @@ impl Interpreter {
                         }
                         _ => qerror!(
                             exprwl,
-                            format!("No subcommand called '{}' in builtin functions", v)
+                            format!("No subcommand called '{}' in builtin functions", v),
+                            self.stack
                         ),
                     },
                 }
@@ -104,10 +116,18 @@ impl Interpreter {
 
                             return (vars.0.clone(), variables.clone());
                         } else {
-                            qerror!(exprwl, format!("{} is not a proc", name.join(".")))
+                            qerror!(
+                                exprwl,
+                                format!("{} is not a proc", name.join(".")),
+                                self.stack
+                            )
                         }
                     }
-                    None => qerror!(exprwl, format!("{} is not defined", name.join("."))),
+                    None => qerror!(
+                        exprwl,
+                        format!("{} is not defined", name.join(".")),
+                        self.stack
+                    ),
                 }
             }
         } else {
@@ -130,7 +150,7 @@ impl Interpreter {
                     let raw = match path.as_str() {
                         "std" => include_str!("lib/std.bs"),
                         "math" => include_str!("lib/math.bs"),
-                        _ => qerror!(exprwl, format!("Invaild std import!")),
+                        _ => qerror!(exprwl, format!("Invaild std import!"), self.stack),
                     }
                     .to_string()
                     .replace("\r", &"");
@@ -145,7 +165,7 @@ impl Interpreter {
                     let vars = inter.run_program(program, false, namespace.clone());
                     for (k, v) in vars {
                         if variables.contains_key(&k) {
-                            qerror!(exprwl, format!("Variable already defined"));
+                            qerror!(exprwl, format!("Variable already defined"), self.stack);
                         }
                         let new_namespace = namespace.clone();
                         let new_namespace = new_namespace.iter().chain(&k).map(|f| f.clone());
@@ -155,7 +175,7 @@ impl Interpreter {
                 }
             } else if let Expr::Proc(name, _args, _prog) = expr.clone() {
                 if variables.contains_key(&name) {
-                    qerror!(exprwl, format!("Variable already defined"));
+                    qerror!(exprwl, format!("Variable already defined"), self.stack);
                 } else {
                     let new_namespace = namespace.clone();
                     let new_namespace = new_namespace.iter().chain(&name).map(|f| f.clone());
@@ -183,7 +203,8 @@ impl Interpreter {
                         format!(
                             "Variable named \"{}\" has already been defined",
                             name.join(".")
-                        )
+                        ),
+                        self.stack
                     );
                 }
             } else if let Expr::ConstantDeclaration(name, expr) = expr.clone() {
@@ -198,7 +219,8 @@ impl Interpreter {
                         format!(
                             "Variable named \"{}\" has already been defined",
                             name.join(".")
-                        )
+                        ),
+                        self.stack
                     );
                 }
             } else if let Expr::VariableSet(name, expr) = expr.clone() {
@@ -211,7 +233,8 @@ impl Interpreter {
                 } else {
                     qerror!(
                         exprwl,
-                        format!("Variable named \"{}\" isn't defined", name.join("."))
+                        format!("Variable named \"{}\" isn't defined", name.join(".")),
+                        self.stack
                     );
                 }
             } else if let Expr::For(name, start, end, prog) = expr.clone() {
@@ -481,7 +504,8 @@ impl Interpreter {
                 match var {
                     None => qerror!(
                         y,
-                        format!("Variable named \"{}\" hasn't been defined", name.join("."))
+                        format!("Variable named \"{}\" hasn't been defined", name.join(".")),
+                        self.stack
                     ),
                     Some(v) => {
                         self.resolve_variable(v.clone(), variables.clone(), namespace.clone())
@@ -543,6 +567,6 @@ impl Interpreter {
     }
 
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter { stack: vec![] }
     }
 }
