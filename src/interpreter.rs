@@ -231,7 +231,7 @@ impl Interpreter {
                 } else {
                     match variables.get(&name) {
                         Some(v) => {
-                            if let Expr::Proc(_name, _arg, prog) = v {
+                            if let Expr::Proc(_name, _arg, _prog) = v {
                                 let vars = self.run_proc(
                                     args.clone(),
                                     v.clone(),
@@ -321,7 +321,7 @@ impl Interpreter {
                 let main = ret
                     .get(&vec!["main".to_string()])
                     .expect("Expected main function");
-                let res = self.run_proc(vec![], main.clone(), ret.clone(), namespace.clone());
+                let _res = self.run_proc(vec![], main.clone(), ret.clone(), namespace.clone());
             }
             return ret;
         } else {

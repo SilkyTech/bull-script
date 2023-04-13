@@ -131,7 +131,7 @@ impl Parser<'_> {
         }
 
         if let Token::Namespace() = &peek.token.clone() {
-            eat_token!(self);
+            _ = eat_token!(self);
 
             let nmspc_name = {
                 let then = eat_token!(self);
@@ -147,13 +147,13 @@ impl Parser<'_> {
                 }
             };
 
-            eat_token!(self);
+            _ = eat_token!(self);
 
             let mut key = peek_token!(self);
             let mut program: Vec<Expr> = vec![];
             loop {
                 if let Token::End() = key.token {
-                    eat_token!(self);
+                    _ = eat_token!(self);
                     break;
                 }
                 if let Token::EOF() = key.token {
@@ -232,7 +232,7 @@ impl Parser<'_> {
         }
 
         if let Token::If() = &peek.token.clone() {
-            eat_token!(self);
+            _ = eat_token!(self);
 
             let expr = self.parse_expression();
 
@@ -252,7 +252,7 @@ impl Parser<'_> {
             let mut program: Vec<Expr> = vec![];
             loop {
                 if let Token::End() = key.token {
-                    eat_token!(self);
+                    _ = eat_token!(self);
                     break;
                 }
                 if let Token::EOF() = key.token {
@@ -269,7 +269,7 @@ impl Parser<'_> {
             return Expr::If(Box::new(expr), program);
         }
         if let Token::For() = &peek.token.clone() {
-            eat_token!(self);
+            _ = eat_token!(self);
 
             let varname = {
                 let then = eat_token!(self);
@@ -364,7 +364,7 @@ impl Parser<'_> {
             let mut program: Vec<Expr> = vec![];
             loop {
                 if let Token::End() = key.token {
-                    eat_token!(self);
+                    _ = eat_token!(self);
                     break;
                 }
                 if let Token::EOF() = key.token {
@@ -381,7 +381,7 @@ impl Parser<'_> {
             return Expr::For(varname, Box::new(startval), Box::new(endval), program);
         }
         if let Token::While() = &peek.token {
-            eat_token!(self);
+            _ = eat_token!(self);
 
             let expr = self.parse_expression();
 
@@ -401,7 +401,7 @@ impl Parser<'_> {
             let mut program: Vec<Expr> = vec![];
             loop {
                 if let Token::End() = key.token {
-                    eat_token!(self);
+                    _ = eat_token!(self);
                     break;
                 }
                 if let Token::EOF() = key.token {
@@ -598,7 +598,7 @@ impl Parser<'_> {
                 let mut program: Vec<Expr> = vec![];
                 loop {
                     if let Token::End() = key.token {
-                        eat_token!(self);
+                        _ = eat_token!(self);
                         break;
                     }
                     if let Token::EOF() = key.token {
@@ -624,24 +624,24 @@ impl Parser<'_> {
         }
         if let Token::Identifier(parts) = &p.token {
             if let Token::OpenParen() = peek_token!(self).token {
-                eat_token!(self);
+                _ = eat_token!(self);
                 let mut arguments: Vec<Expr> = vec![];
                 loop {
                     if let Token::CloseParen() = peek_token!(self).token {
-                        eat_token!(self);
+                        _ = eat_token!(self);
                         break;
                     }
                     let expr = self.parse_expression();
                     arguments.push(expr);
                     if let Token::Comma() = peek_token!(self).token {
-                        eat_token!(self);
+                        _ = eat_token!(self);
                         continue;
                     }
                 }
                 return Expr::Call(parts.clone(), arguments);
             } else if let Token::OperatorSet() = peek_token!(self).token {
                 // setting variable
-                eat_token!(self);
+                _ = eat_token!(self);
                 let expr = self.parse_expression();
                 return Expr::VariableSet(parts.clone(), Box::new(expr));
             } else {
