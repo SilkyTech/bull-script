@@ -226,6 +226,17 @@ impl Interpreter {
                                 let res = resolve_variable(args[0].clone(), variables.clone());
                                 print!("{}", res.1);
                             }
+                            "debug" => {
+                                assert_eq!(args.len(), 1, "Argument length required to be one: usage `builtin.debug($expr)`");
+                                println!("{:?}", args[0].clone());
+                            }
+                            "debugval" => {
+                                assert_eq!(args.len(), 1, "Argument length required to be one: usage `builtin.debug($expr)`");
+                                println!(
+                                    "{:?}",
+                                    resolve_variable(args[0].clone(), variables.clone())
+                                );
+                            }
                             _ => panic!("No subcommand called '{}' in builtin functions", v),
                         },
                     }
@@ -251,6 +262,18 @@ impl Interpreter {
             } else if let Expr::VariableDeclaration(name, expr) = expr.clone() {
                 if !variables.contains_key(&name) {
                     variables.insert(name, unbox(expr));
+                } else {
+                    panic!(
+                        "Variable named \"{}\" has already been defined",
+                        name.join(".")
+                    );
+                }
+            } else if let Expr::ConstantDeclaration(name, expr) = expr.clone() {
+                if !variables.contains_key(&name) {
+                    let new_namespace = namespace.clone();
+                    let new_namespace = new_namespace.iter().chain(&name).map(|f| f.clone());
+                    let new_namespace: Vec<String> = new_namespace.collect();
+                    variables.insert(new_namespace, unbox(expr));
                 } else {
                     panic!(
                         "Variable named \"{}\" has already been defined",
