@@ -23,5 +23,5 @@ fn main() {
     let program = parser.parse_program();
 
     let mut inter = Interpreter::new();
-    inter.run_program(program, true, vec![]);
+    inter.run_program(program);
 }

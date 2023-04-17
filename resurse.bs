@@ -1,0 +1,10 @@
+import std
+
+proc recurse() then 
+    let a = 0
+    recurse()
+end
+
+proc main () then
+    recurse()
+end

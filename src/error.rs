@@ -1,6 +1,6 @@
 use std::process;
 
-use crate::interpreter::Location;
+use crate::interpreter::Stack;
 
 pub fn error_at(filen: &String, linen: &i32, charn: &i32, reason: &String) -> ! {
     panic!(
@@ -9,7 +9,7 @@ pub fn error_at(filen: &String, linen: &i32, charn: &i32, reason: &String) -> ! 
     );
 }
 pub fn error_at_with_stack_trace(
-    stack: Vec<Location>,
+    stack: Stack,
     filen: &String,
     linen: &i32,
     charn: &i32,
