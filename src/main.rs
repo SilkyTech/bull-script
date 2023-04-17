@@ -5,6 +5,7 @@ pub mod error;
 pub mod lexer;
 pub mod parser;
 use std::{env, fs};
+pub mod chainmap;
 pub mod interpreter;
 
 fn main() {

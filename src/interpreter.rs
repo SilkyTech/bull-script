@@ -1,12 +1,11 @@
-
 use std::collections::HashMap;
 
-use crate::parser::{Expr, ExprWL};
+use crate::chainmap::ChainMap;
 use crate::error::error_at;
-
+use crate::parser::{Expr, ExprWL};
 
 pub struct Interpreter {
-    stack: Stack
+    stack: Stack,
 }
 
 fn unbox<T>(value: Box<T>) -> T {
@@ -27,30 +26,26 @@ impl Interpreter {
         self.stack.push(scope);
         for ex in code {
             let expr = ex.clone().expr;
-            
+
             if let Expr::VariableDeclaration(name, value) = expr.clone() {
                 scope.insert(name.clone(), unbox(value));
             } else if let Expr::Import(relative, path) = expr.clone() {
                 if relative {
                     error!(ex, format!("Relative imports are not implemented yet"));
                 } else {
-                    
                 }
             } else {
                 eprintln!("{:?} has not been implemented yet!", expr);
             }
-            
         }
+        self.stack.pop();
     }
 
     pub fn run_program(&mut self, prog: ExprWL) {
         let expr = prog.clone().expr;
-
     }
 
-    pub fn new () -> Self {
-        Self {
-            stack: vec![]
-        }
+    pub fn new() -> Self {
+        Self { stack: vec![] }
     }
 }
