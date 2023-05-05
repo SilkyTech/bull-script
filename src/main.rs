@@ -24,5 +24,5 @@ fn main() {
     let program = parser.parse_program();
 
     let mut inter = Interpreter::new();
-    inter.run_program(program);
+    inter.run_program(program, argv[1].clone());
 }
