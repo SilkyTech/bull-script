@@ -4,7 +4,7 @@ The file extension is ".bs"
 
 Here is some example code.
 
-```js
+```lua
 import std
 proc main() then
     std.printval("Hello, world!\n")
